@@ -199,7 +199,7 @@ export class DeterministicContextCompiler implements ContextCompiler {
     }
     const source = {
       kind: 'plugin' as const,
-      plugin: 'dsh-codex-handoff' as const,
+      plugin: 'dsh-threadbridge' as const,
       sourceAgent: 'codex' as const,
       sourceSessionId: manifest.source.sessionId,
       rolloutRevisionId: manifest.source.rolloutRevisionId,

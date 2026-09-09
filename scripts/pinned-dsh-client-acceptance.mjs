@@ -25,7 +25,7 @@ const context = createContext(sandbox)
 new Script(source, { filename: basename(bundlePath) }).runInContext(context)
 if (registrations.length !== 1) throw new Error(`expected one client registration, got ${registrations.length}`)
 const registration = registrations[0]
-if (registration.id !== 'dsh-codex-handoff') throw new Error(`unexpected client registration id: ${registration.id}`)
+if (registration.id !== 'dsh-threadbridge') throw new Error(`unexpected client registration id: ${registration.id}`)
 if (typeof registration.factory !== 'function') throw new Error('client registration factory is not callable')
 
 // This is the pinned DSH platform table, not a second copy of React.  The
@@ -79,7 +79,7 @@ const loader = target.create({
 })
 if (target.mode !== 'live') throw new Error('official loader did not switch the ModuleLoader facade to live mode')
 if (loader.version !== 'client') throw new Error(`unexpected official loader version: ${loader.version}`)
-if (loader.loadCache.get('dsh-codex-handoff')?.exports !== exports) {
+if (loader.loadCache.get('dsh-threadbridge')?.exports !== exports) {
   throw new Error('official loader did not retain the lazy-CJS bootstrap exports')
 }
 

@@ -498,7 +498,7 @@ describe('shared runtime contracts', () => {
     expect(Object.keys(CodexHandoffRemoteSchemas.create)).toEqual(['request', 'response'])
     const metadata = {
       kind: 'plugin' as const,
-      plugin: 'dsh-codex-handoff' as const,
+      plugin: 'dsh-threadbridge' as const,
       sourceAgent: 'codex' as const,
       sourceSessionId: 'thread-1',
       rolloutRevisionId: 'rollout-1',

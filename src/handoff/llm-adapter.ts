@@ -386,7 +386,7 @@ function analysisReasoningEffort(selection: DshModelSelection): string | undefin
 }
 
 function pluginMessage(id: string, text: string): DshMessage {
-  return { id, role: 'user', content: [{ type: 'text', text }], source: { kind: 'plugin', plugin: 'dsh-codex-handoff' } }
+  return { id, role: 'user', content: [{ type: 'text', text }], source: { kind: 'plugin', plugin: 'dsh-threadbridge' } }
 }
 
 /** Accept the common Markdown JSON fence while rejecting surrounding prose. */

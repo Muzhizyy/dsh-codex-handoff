@@ -111,7 +111,7 @@ async function main() {
   const patchText = await readFile(join(packageRoot, 'cordis.patch.yml'), 'utf8')
   assert(/^- insert:/mu.test(patchText), 'bundle patch is not an insert list')
   assert(/id:\s*codex-handoff\b/u.test(patchText), 'bundle patch does not insert codex-handoff')
-  assert(/name:\s*dsh-codex-handoff\b/u.test(patchText), 'bundle patch does not target this package')
+  assert(/name:\s*dsh-threadbridge\b/u.test(patchText), 'bundle patch does not target this package')
   assert(!/\b(?:replace|remove):/u.test(patchText), 'bundle patch replaces/removes a base row')
   for (const service of ['agents', 'agentDefaultModel', 'sessionQuery', 'sessionPersistence', 'workspaceRegistry', 'storageDomain', 'typert']) {
     assert(new RegExp(`-\\s+${service}\\b`, 'u').test(patchText), `bundle patch omits required Host service ${service}`)
@@ -130,15 +130,15 @@ async function main() {
 
   const relativeArchive = relative(harnessRoot, archive).replaceAll('\\', '/')
   await writeFile(join(harnessRoot, 'package.json'), JSON.stringify({
-    name: 'dsh-codex-handoff-pack-harness',
+    name: 'dsh-threadbridge-pack-harness',
     private: true,
     type: 'module',
-    dependencies: { 'dsh-codex-handoff': `file:${relativeArchive}` },
+    dependencies: { 'dsh-threadbridge': `file:${relativeArchive}` },
   }, null, 2) + '\n', 'utf8')
   await run('pnpm', ['install', '--ignore-scripts', '--no-frozen-lockfile'], harnessRoot)
-  const installedRoot = join(harnessRoot, 'node_modules', 'dsh-codex-handoff')
+  const installedRoot = join(harnessRoot, 'node_modules', 'dsh-threadbridge')
   const installedPackage = JSON.parse(await readFile(join(installedRoot, 'package.json'), 'utf8'))
-  assert(installedPackage.name === 'dsh-codex-handoff', 'ignore-scripts install did not resolve packed package')
+  assert(installedPackage.name === 'dsh-threadbridge', 'ignore-scripts install did not resolve packed package')
 
   const rootModule = await import(pathToFileURL(join(installedRoot, installedPackage.exports['.'].default.slice(2))).href)
   assert(typeof rootModule.apply === 'function' && typeof rootModule.CodexHandoffHostService === 'function', 'Host export does not load')

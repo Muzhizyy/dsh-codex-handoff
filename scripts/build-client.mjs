@@ -50,7 +50,7 @@ await build({
 })
 
 const body = await readFile(bodyFile, 'utf8')
-const bundleId = 'dsh-codex-handoff'
+const bundleId = 'dsh-threadbridge'
 const wrapped = [
   `window.__ModuleLoader__.load({ id: ${JSON.stringify(bundleId)}, factory: (require) => {`,
   'var module = { exports: {} }; var exports = module.exports;',

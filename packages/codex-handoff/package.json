@@ -1,5 +1,5 @@
 {
-  "name": "dsh-codex-handoff",
+  "name": "dsh-threadbridge",
   "version": "0.1.0-alpha.1",
   "type": "module",
   "main": "lib/index.js",

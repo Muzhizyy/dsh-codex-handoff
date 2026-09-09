@@ -37,7 +37,7 @@ class MountingRemote extends FakeRemote {
       return typeof method === 'string' ? [method] : []
     }))
     const required = ['compatibility', 'discover', 'preview', 'analyze', 'create']
-    if (contribution.package !== 'dsh-codex-handoff' || required.some(method => !methods.has(method))) {
+    if (contribution.package !== 'dsh-threadbridge' || required.some(method => !methods.has(method))) {
       throw new Error('DSH_CLIENT_REMOTE_DESCRIPTOR_INVALID')
     }
     const envelope = async <T>(call: () => Promise<T>): Promise<{ readonly ok: true; readonly value: T }> => ({
@@ -80,7 +80,7 @@ describe('official-shaped client slot adapter', () => {
         },
       },
     }
-    await expect(apply(context, { package: 'dsh-codex-handoff', descriptors: [] })).rejects.toThrow('DSH_CLIENT_REMOTE_CONTRIBUTION_MISSING')
+    await expect(apply(context, { package: 'dsh-threadbridge', descriptors: [] })).rejects.toThrow('DSH_CLIENT_REMOTE_CONTRIBUTION_MISSING')
     expect(locale).toBeUndefined()
     expect(injections).toEqual([])
     expect(registrations).toEqual([])

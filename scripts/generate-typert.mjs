@@ -50,10 +50,10 @@ export async function generateOfficialArtifacts(checkout, artifactRoot = generat
     const { WorkspaceTypertGenerator } = await import(pathToFileURL(generatorPath).href)
     const generator = new WorkspaceTypertGenerator(checkout, { checkDiagnostics: true })
     const discovered = generator.discover(['host'])
-    if (!discovered.some(item => item.package === 'dsh-codex-handoff')) {
-      throw new Error('official Typert generator did not discover dsh-codex-handoff')
+    if (!discovered.some(item => item.package === 'dsh-threadbridge')) {
+      throw new Error('official Typert generator did not discover dsh-threadbridge')
     }
-    const [artifact] = generator.generate(['dsh-codex-handoff'], ['host'])
+    const [artifact] = generator.generate(['dsh-threadbridge'], ['host'])
     if (artifact === undefined || artifact.remote === undefined) throw new Error('official Typert generator emitted no Host Remote artifact')
     await mkdir(artifactRoot, { recursive: true })
     await writeFile(resolve(artifactRoot, 'typert.js'), artifact.js, 'utf8')

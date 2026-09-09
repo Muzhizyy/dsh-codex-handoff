@@ -1,70 +1,106 @@
-# DSH Codex Handoff
+<p align="center">
+  <img src="assets/hero.svg" alt="ThreadBridge" width="100%" />
+</p>
 
-English | [简体中文](README.zh-CN.md)
+<h1 align="center">ThreadBridge</h1>
+<p align="center"><strong>Your Codex work, continued in DeepSeek Harness.</strong></p>
+<p align="center">
+  <strong>English</strong> · <a href="README.zh-CN.md">简体中文</a>
+</p>
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-64748b?style=flat-square" alt="MIT License" /></a>
+  <img src="https://img.shields.io/badge/Built_for-DeepSeek_Harness-2563eb?style=flat-square" alt="Built for DeepSeek Harness" />
+</p>
 
-Continue a Codex coding task in **DeepSeek Harness (DSH)** with a preview of the conversation and the repository as it exists now.
 
-**Status: developer preview · MIT · Web profile only.** Compatibility is pinned to DSH commit `d347e703908d0406b7a7ef80e3a0e594d86b2215` (`0.1.3-alpha.1`). This is an independent community plugin; newer DSH versions require validation.
+You have already explained the project, explored the code, and worked through the first few attempts in Codex. When you move to DSH, that context should come with you.
 
-## What it does
+**ThreadBridge brings your Codex conversations, decisions, and current repository context into a DSH session you can keep working in.** Find a conversation, preview the handoff, and pick up the task.
 
-- Discovers active and archived Codex sessions without changing their source files.
-- Shows repository, file, size, and history diagnostics before importing.
-- Offers **Smart** handoff: deterministic repository facts, optionally summarized by the current DSH model, with a degraded fallback when that model is unavailable.
-- Offers **Full** handoff: safely representable messages and closed tool-call pairs, without replaying historical commands.
-- Creates a normal, resumable DSH session through the typed Agent API. Fingerprints make equivalent retries idempotent.
+<p align="center"><a href="#why-threadbridge">Why ThreadBridge</a> · <a href="#quick-start">Quick start</a> · <a href="#smart-or-full">Smart or Full</a> · <a href="#how-it-works">How it works</a></p>
 
-```mermaid
-flowchart LR
-  A[Codex sessions] --> B[Read-only discovery]
-  R[Current repository] --> C[Preview and diagnostics]
-  B --> C
-  C --> D[Consent: Smart or Full]
-  D --> E[DSH Agent API]
-  E --> F[Resumable session]
-```
+## Why ThreadBridge
 
-## Build and install
+| What you want to do | What ThreadBridge brings |
+| --- | --- |
+| Continue a feature in DSH | The goal, decisions, unresolved work, and relevant repository facts. |
+| Find a conversation from earlier | Search across active and archived Codex sessions, with previews. |
+| Give the next session a focused starting point | Smart handoff combines conversation evidence with the repository's current state. |
+| Preserve more of the conversation | Full handoff carries representable message history and completed tool exchanges. |
+| Understand the handoff before creating it | A preview of the source, working directory, context, and diagnostics. |
 
-Requirements: Git, Node `^22.19.0 || >=24.0.0`, pnpm `11.7.0`, and a configured compatible DSH Web profile. Run from this repository:
+### Context that follows the code
+
+A useful handoff needs more than a summary of what the last agent said. ThreadBridge inspects the working directory and repository so the next session can distinguish earlier intent from the code that is there now.
+
+### A choice in how much to bring
+
+Use **Smart** for a concise continuation brief. Use **Full** when the conversation itself matters. In Smart mode, choose the current DSH model for analysis or build the handoff without an analysis call.
+
+### Continue inside DSH
+
+The result is a normal DSH session created through its Agent API. Open it and keep using the tools and model configured in your DSH environment.
+
+## Quick start
+
+**You need:** a configured DSH Web profile compatible with `0.1.3-alpha.1`, Node 24, Git, and pnpm 11.7.0. Download or clone this repository, then run:
 
 ```sh
 pnpm install --frozen-lockfile
-pnpm check
+pnpm build
 pnpm pack
-dsh plugin --profile web add ./dsh-codex-handoff-0.1.0-alpha.1.tgz
+dsh plugin --profile web add ./dsh-threadbridge-0.1.0-alpha.1.tgz
 ```
 
-Restart the Web profile. The package is built locally; these instructions do not assume an npm release exists. Checked-in Typert descriptors allow the ordinary build to run without a DSH source checkout. See [development](docs/DEVELOPMENT.md) for regeneration and upstream acceptance.
+Restart the DSH Web profile. In the sidebar, open **Continue from Codex**.
 
-Dependency build scripts are controlled by pnpm `allowBuilds` (esbuild is allowed). This package has no `prepare` install hook. Consumers of the built tarball do not need to compile the sources.
+1. **Find** the conversation you want to continue.
+2. **Preview** its context and select the working directory.
+3. **Choose** Smart or Full, review the handoff, and confirm.
+4. **Continue** in the new DSH session.
 
-## Use
+**Try it with a task you know:** select a Codex conversation about a feature you are already building, use Smart, then ask DSH to continue the next unfinished step. Check the preview against your current repository before creating the session.
 
-Open **Continue from Codex** in the sidebar, search for a session, and inspect its preview. Confirm an existing working directory, choose Smart or Full, review the information to be persisted, and consent to creation. The plugin opens the session after DSH confirms it is visible.
+## Smart or Full?
 
-A `created_unattached` result means the session was created but workspace attachment was not confirmed. Retry attachment or inspect the session in DSH; do not repeatedly import it.
+| | Smart | Full |
+| --- | --- | --- |
+| Best fit | Get the next session oriented around the work ahead | Carry the conversation's wider history |
+| Context | A structured brief: objective, progress, decisions, blockers, next actions, and repository facts | Representable messages and completed tool-call/result pairs |
+| Model-assisted analysis | Optional; uses the current DSH model | Not needed for the handoff |
+| Historical commands | Used as evidence | Preserved as history |
 
-## Privacy and limitations
+Historical commands are never replayed during import. Both modes give you a preview and require confirmation.
 
-Both modes require explicit consent. Smart with a model sends bounded, best-effort-redacted evidence to the configured model. Smart without a model makes no analysis call. Both modes persist context that can be sent to the configured model on a later explicitly submitted DSH turn. Full also persists representable history. Redaction is **best effort**: review sensitive content before consent.
+## How it works
 
-The importer never replays tools, writes Codex source data, or directly edits DSH JSONL. Sensitive paths such as credentials and private keys are excluded from repository evidence. Incomplete or corrupt history is reported as such; missing context is not reconstructed as fact. This is not a complete session backup or an exact recreation of the original agent runtime.
+```mermaid
+flowchart LR
+    C[Codex conversations] --> P[Discover and preview]
+    R[Current repository] --> P
+    P --> S[Smart brief]
+    P --> F[Full history]
+    S --> A[DSH Agent API]
+    F --> A
+    A --> N[Continue the task in DSH]
+```
 
-## Troubleshooting
+ThreadBridge reads Codex data without modifying it. It compiles the selected context, creates the DSH session, and checks that the session is visible before opening it. Matching source fingerprints make equivalent creation retries idempotent.
 
-| Symptom | Action |
-| --- | --- |
-| No sidebar entry | Check the Web profile and required UI/session services; restart it. |
-| Compatibility rejected | Use the pinned upstream revision; do not bypass the compatibility check. |
-| `CWD_REQUIRED` / `CWD_NOT_FOUND` | Select an existing working directory. |
-| `SOURCE_CHANGED` | Discover and preview the source again. |
-| `SESSION_NOT_VISIBLE` | Refresh DSH and inspect the session list before retrying. |
+## Make it yours
 
-Uninstall with `dsh plugin --profile web remove dsh-codex-handoff`, then restart the profile. Existing DSH sessions and Codex source data remain.
+The project separates conversation discovery, repository inspection, context compilation, and the DSH UI. That makes it straightforward to explore a parser improvement, refine the Smart brief, or improve the handoff experience.
 
-## Development
+```sh
+pnpm check
+```
 
-`src/codex` discovers history; `src/repo` gathers repository facts; `src/handoff` compiles context; `src/dsh` and `src/host` connect to DSH; `src/client` implements the Web UI. Tests use synthetic fixtures.
+Start with the [development guide](docs/DEVELOPMENT.md). For installation details, consent, privacy, recovery, and uninstall instructions, see the [usage guide](docs/USAGE.md).
 
-Run `pnpm check` for type checks, lint, tests, builds, and tarball installation checks. See [validation](docs/VALIDATION.md), [contributing](CONTRIBUTING.md), and [references](docs/REFERENCES.md). Historical design drafts live in `docs/design/`; current code and validation take precedence. Licensed under [MIT](LICENSE).
+## Contribute
+
+Found a Codex history format we should handle better? Have an idea for a more useful continuation brief? Open an issue with a synthetic example, or send a focused PR. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+Built for the [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) ecosystem. [MIT licensed](LICENSE).
+
+<sub>Compatibility and verification details are maintained in the [validation notes](docs/VALIDATION.md); review the handoff before sharing context with your configured model.</sub>

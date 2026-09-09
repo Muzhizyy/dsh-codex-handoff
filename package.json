@@ -1,7 +1,7 @@
 {
-  "name": "dsh-codex-handoff",
+  "name": "dsh-threadbridge",
   "version": "0.1.0-alpha.1",
-  "description": "Continue a Codex coding task in DeepSeek Harness with repository-aware handoff context.",
+  "description": "Bring your Codex conversations, decisions, and repository context into DeepSeek Harness.",
   "license": "MIT",
   "type": "module",
   "packageManager": "pnpm@11.7.0",
@@ -49,7 +49,9 @@
     "docs/DEVELOPMENT.md",
     "docs/VALIDATION.md",
     "docs/REFERENCES.md",
-    "docs/PUBLISHING.md"
+    "docs/PUBLISHING.md",
+    "assets/",
+    "docs/USAGE.md"
   ],
   "dsh": {
     "compatibility": {

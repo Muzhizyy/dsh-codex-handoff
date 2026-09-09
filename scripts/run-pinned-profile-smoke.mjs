@@ -161,7 +161,7 @@ async function dumpConfig(cli, environment) {
 
 function assertDumpConfig(output, expectedCount, phase) {
   const count = countOccurrences(output, /^- id:\s*codex-handoff\b/gimu)
-  assert(count === expectedCount, `${phase} dump-config expected dsh-codex-handoff count ${expectedCount}, got ${count}`)
+  assert(count === expectedCount, `${phase} dump-config expected dsh-threadbridge count ${expectedCount}, got ${count}`)
   assert(!/unmatched/iu.test(output), `${phase} dump-config contains an unmatched plugin row`)
 }
 
@@ -201,10 +201,10 @@ try {
   await run('node', [cli, ...profileArgs, 'add', archive], repoRoot, environment)
 
   const installedManifest = await readJson(profileManifestPath)
-  assert(installedManifest.dependencies?.['dsh-codex-handoff'] !== undefined, 'pinned plugin add did not persist the package dependency')
-  assert(installedManifest.dsh?.profile?.bundles?.includes('dsh-codex-handoff') === true, 'pinned plugin add did not persist the bundle layer')
-  assert(Object.keys(installedManifest.dependencies ?? {}).filter(name => name === 'dsh-codex-handoff').length === 1, 'pinned plugin add persisted more than one package dependency')
-  assert(countOccurrences(installedManifest.dsh?.profile?.bundles?.join('\n') ?? '', /dsh-codex-handoff/giu) === 1, 'pinned plugin add persisted more than one bundle layer')
+  assert(installedManifest.dependencies?.['dsh-threadbridge'] !== undefined, 'pinned plugin add did not persist the package dependency')
+  assert(installedManifest.dsh?.profile?.bundles?.includes('dsh-threadbridge') === true, 'pinned plugin add did not persist the bundle layer')
+  assert(Object.keys(installedManifest.dependencies ?? {}).filter(name => name === 'dsh-threadbridge').length === 1, 'pinned plugin add persisted more than one package dependency')
+  assert(countOccurrences(installedManifest.dsh?.profile?.bundles?.join('\n') ?? '', /dsh-threadbridge/giu) === 1, 'pinned plugin add persisted more than one bundle layer')
   const postAddConfig = await dumpConfig(cli, environment)
   assertDumpConfig(postAddConfig, 1, 'post-add')
   assert(await readOptional(profilePatchPath) === profilePatchBefore, 'plugin add modified the profile patch instead of the bundle manifest')
@@ -213,7 +213,7 @@ try {
   const bootOutput = await bootWebUntilReady(cli, environment)
   assert(/dsh web:\s+https?:\/\//u.test(bootOutput), 'pinned Web profile did not report a listening startup URL')
 
-  const installedRoot = resolve(profileRoot, 'node_modules', 'dsh-codex-handoff')
+  const installedRoot = resolve(profileRoot, 'node_modules', 'dsh-threadbridge')
   const installedClient = resolve(installedRoot, 'dist', 'client.js')
   await ensureFile(installedClient, 'installed plugin Client entry')
   await run('node', [resolve(repoRoot, 'scripts', 'pinned-dsh-client-acceptance.mjs')], repoRoot, {
@@ -222,10 +222,10 @@ try {
     DSH_REPO_ROOT: repoRoot,
   })
 
-  await run('node', [cli, ...profileArgs, 'remove', 'dsh-codex-handoff'], repoRoot, environment)
+  await run('node', [cli, ...profileArgs, 'remove', 'dsh-threadbridge'], repoRoot, environment)
   const removedManifest = await readJson(profileManifestPath)
-  assert(removedManifest.dependencies?.['dsh-codex-handoff'] === undefined, 'pinned plugin remove left the dependency installed')
-  assert(!removedManifest.dsh?.profile?.bundles?.includes('dsh-codex-handoff'), 'pinned plugin remove left the bundle layer active')
+  assert(removedManifest.dependencies?.['dsh-threadbridge'] === undefined, 'pinned plugin remove left the dependency installed')
+  assert(!removedManifest.dsh?.profile?.bundles?.includes('dsh-threadbridge'), 'pinned plugin remove left the bundle layer active')
   assert(await readOptional(profilePatchPath) === profilePatchBefore, 'plugin remove modified the profile patch')
   assert(await readOptional(homePatchPath) === homePatchBefore, 'plugin remove modified the home patch')
   const postRemoveConfig = await dumpConfig(cli, environment)

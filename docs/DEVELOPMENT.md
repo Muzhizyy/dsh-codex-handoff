@@ -27,3 +27,8 @@ pnpm test:pinned-dsh-client
 
 Keep the DSH compatibility declaration and pinned SHA in sync when upgrading. Never replace a failed upstream test with a file-existence check.
 升级时同步兼容性声明和固定 SHA，并重新执行真实上游验收。
+
+## Dependency lifecycle / 依赖构建脚本
+
+Dependency build scripts are controlled through pnpm `allowBuilds`; the repository allows esbuild. ThreadBridge has no `prepare` install hook. Consumers of the built tarball do not compile the source during installation.
+依赖构建脚本通过 pnpm `allowBuilds` 管理，项目允许 esbuild。ThreadBridge 没有 `prepare` 安装钩子，安装已构建的 tarball 无需编译源码。

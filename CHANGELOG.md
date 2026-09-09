@@ -6,3 +6,9 @@
 - Added typed Host/Client/Remote exports, Smart deterministic/model-assisted preview, and Full consent flow.
 - Added read-only Codex discovery, repository diagnostics, bounded redaction, idempotent create and restart-oriented acceptance gates.
 - Documented prebuilt installation, source-build lifecycle risk, best-effort privacy guarantees, limitations and uninstall behavior.
+
+## Branding and documentation update — Unreleased
+
+- New project identity and English/Chinese README presentation.
+- Pro / Flash terminology for the collaboration projects.
+- Local vector header artwork, concrete usage examples, and revised quick starts.

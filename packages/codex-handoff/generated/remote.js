@@ -275,10 +275,10 @@ const dsh_codex_handoff_codexHandoff_preview_result$schema = z.object({
 })
 
 export const TYPERT_REMOTE = {
-  package: 'dsh-codex-handoff',
+  package: 'dsh-threadbridge',
   descriptors: [
     {
-      id: 'dsh-codex-handoff#codexHandoff/analyze',
+      id: 'dsh-threadbridge#codexHandoff/analyze',
       service: 'codexHandoff',
       namespace: 'codexHandoff',
       method: 'analyze',
@@ -290,7 +290,7 @@ export const TYPERT_REMOTE = {
           source: 'json',
           codec: {
             mode: 'strict',
-            typeSymbol: 'dsh-codex-handoff/types#AnalyzeRequest',
+            typeSymbol: 'dsh-threadbridge/types#AnalyzeRequest',
             schema: dsh_codex_handoff_codexHandoff_analyze_parameter_0$schema,
           },
         },
@@ -298,13 +298,13 @@ export const TYPERT_REMOTE = {
       cancellation: { parameter: 'signal' },
       result: {
         mode: 'strict',
-        typeSymbol: 'dsh-codex-handoff/types#SmartPreview',
+        typeSymbol: 'dsh-threadbridge/types#SmartPreview',
         schema: dsh_codex_handoff_codexHandoff_analyze_result$schema,
       },
       sourceLocation: {"file":"packages/codex-handoff/src/index.ts","line":53,"column":3},
     },
     {
-      id: 'dsh-codex-handoff#codexHandoff/compatibility',
+      id: 'dsh-threadbridge#codexHandoff/compatibility',
       service: 'codexHandoff',
       namespace: 'codexHandoff',
       method: 'compatibility',
@@ -313,13 +313,13 @@ export const TYPERT_REMOTE = {
       ],
       result: {
         mode: 'strict',
-        typeSymbol: 'dsh-codex-handoff/types#CompatibilityView',
+        typeSymbol: 'dsh-threadbridge/types#CompatibilityView',
         schema: dsh_codex_handoff_codexHandoff_compatibility_result$schema,
       },
       sourceLocation: {"file":"packages/codex-handoff/src/index.ts","line":38,"column":3},
     },
     {
-      id: 'dsh-codex-handoff#codexHandoff/create',
+      id: 'dsh-threadbridge#codexHandoff/create',
       service: 'codexHandoff',
       namespace: 'codexHandoff',
       method: 'create',
@@ -331,7 +331,7 @@ export const TYPERT_REMOTE = {
           source: 'json',
           codec: {
             mode: 'strict',
-            typeSymbol: 'dsh-codex-handoff/types#CreateRequest',
+            typeSymbol: 'dsh-threadbridge/types#CreateRequest',
             schema: dsh_codex_handoff_codexHandoff_create_parameter_0$schema,
           },
         },
@@ -339,13 +339,13 @@ export const TYPERT_REMOTE = {
       cancellation: { parameter: 'signal' },
       result: {
         mode: 'strict',
-        typeSymbol: 'dsh-codex-handoff/types#CreateOutcome',
+        typeSymbol: 'dsh-threadbridge/types#CreateOutcome',
         schema: dsh_codex_handoff_codexHandoff_create_result$schema,
       },
       sourceLocation: {"file":"packages/codex-handoff/src/index.ts","line":58,"column":3},
     },
     {
-      id: 'dsh-codex-handoff#codexHandoff/discover',
+      id: 'dsh-threadbridge#codexHandoff/discover',
       service: 'codexHandoff',
       namespace: 'codexHandoff',
       method: 'discover',
@@ -357,7 +357,7 @@ export const TYPERT_REMOTE = {
           source: 'json',
           codec: {
             mode: 'strict',
-            typeSymbol: 'dsh-codex-handoff/types#DiscoverRequest',
+            typeSymbol: 'dsh-threadbridge/types#DiscoverRequest',
             schema: dsh_codex_handoff_codexHandoff_discover_parameter_0$schema,
           },
         },
@@ -365,13 +365,13 @@ export const TYPERT_REMOTE = {
       cancellation: { parameter: 'signal' },
       result: {
         mode: 'strict',
-        typeSymbol: 'dsh-codex-handoff/types#SessionPage',
+        typeSymbol: 'dsh-threadbridge/types#SessionPage',
         schema: dsh_codex_handoff_codexHandoff_discover_result$schema,
       },
       sourceLocation: {"file":"packages/codex-handoff/src/index.ts","line":43,"column":3},
     },
     {
-      id: 'dsh-codex-handoff#codexHandoff/preview',
+      id: 'dsh-threadbridge#codexHandoff/preview',
       service: 'codexHandoff',
       namespace: 'codexHandoff',
       method: 'preview',
@@ -383,7 +383,7 @@ export const TYPERT_REMOTE = {
           source: 'json',
           codec: {
             mode: 'strict',
-            typeSymbol: 'dsh-codex-handoff/types#PreviewRequest',
+            typeSymbol: 'dsh-threadbridge/types#PreviewRequest',
             schema: dsh_codex_handoff_codexHandoff_preview_parameter_0$schema,
           },
         },
@@ -391,7 +391,7 @@ export const TYPERT_REMOTE = {
       cancellation: { parameter: 'signal' },
       result: {
         mode: 'strict',
-        typeSymbol: 'dsh-codex-handoff/types#SessionPreview',
+        typeSymbol: 'dsh-threadbridge/types#SessionPreview',
         schema: dsh_codex_handoff_codexHandoff_preview_result$schema,
       },
       sourceLocation: {"file":"packages/codex-handoff/src/index.ts","line":48,"column":3},

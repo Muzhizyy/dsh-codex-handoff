@@ -105,7 +105,7 @@ describe('DSH v2 seed compiler', () => {
       text: 'objective and current state',
       source: {
         kind: 'plugin',
-        plugin: 'dsh-codex-handoff',
+        plugin: 'dsh-threadbridge',
         sourceAgent: 'codex',
         sourceSessionId: 'seed-source',
         rolloutRevisionId: 'seed-rollout',
@@ -160,7 +160,7 @@ describe('DSH v2 seed compiler', () => {
       text: canary,
       source: {
         kind: 'plugin',
-        plugin: 'dsh-codex-handoff',
+        plugin: 'dsh-threadbridge',
         sourceAgent: 'codex',
         sourceSessionId,
         rolloutRevisionId,

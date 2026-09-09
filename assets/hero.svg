@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="400" viewBox="0 0 1280 400" role="img" aria-labelledby="title desc"><title id="title">ThreadBridge: continue your Codex work in DSH</title><desc id="desc">Concept diagram for ThreadBridge: continue your Codex work in DSH, not an application screenshot.</desc><defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#0f172a"/><stop offset="1" stop-color="#14142d"/></linearGradient><linearGradient id="beam"><stop stop-color="#a78bfa"/><stop offset="1" stop-color="#fbbf24"/></linearGradient><pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M32 0H0V32" fill="none" stroke="#94a3b8" stroke-opacity=".055"/></pattern></defs><rect width="1280" height="400" rx="24" fill="url(#bg)"/><rect width="1280" height="400" rx="24" fill="url(#grid)"/><g font-family="Inter, Segoe UI, Arial, sans-serif">
+<text x="64" y="74" fill="#60a5fa" font-size="14" font-weight="700" letter-spacing="4">CONTEXT GOES WITH YOU</text>
+<text x="64" y="140" fill="#f8fafc" font-size="52" font-weight="750">ThreadBridge</text>
+<text x="66" y="181" fill="#aab8cc" font-size="21">Your Codex work. Continued in DSH.</text>
+<rect x="68" y="231" width="193" height="51" rx="12" fill="#1e293b" stroke="#334155"/><text x="95" y="263" fill="#cbd5e1" font-size="17">Conversation</text>
+<rect x="276" y="231" width="157" height="51" rx="12" fill="#1e293b" stroke="#334155"/><text x="303" y="263" fill="#cbd5e1" font-size="17">Decisions</text>
+<rect x="68" y="297" width="365" height="48" rx="12" fill="#1e293b" stroke="#334155"/><text x="95" y="328" fill="#cbd5e1" font-size="17">Current repository context</text>
+<path d="M485 233H578M566 223l12 10-12 10" fill="none" stroke="#60a5fa" stroke-width="3" stroke-linecap="round"/>
+<rect x="625" y="65" width="580" height="272" rx="20" fill="#101c30" stroke="#3b82f6" stroke-opacity=".55"/>
+<path d="M625 118H1205" stroke="#263650"/><circle cx="652" cy="92" r="5" fill="#3b82f6"/><circle cx="672" cy="92" r="5" fill="#475569"/><circle cx="692" cy="92" r="5" fill="#475569"/>
+<text x="1138" y="99" text-anchor="end" fill="#aab8cc" font-size="15">DEEPSEEK HARNESS</text>
+<text x="660" y="167" fill="#eff6ff" font-size="25" font-weight="650">Ready to pick up the work</text>
+<text x="660" y="205" fill="#aab8cc" font-size="18">A handoff you can preview.</text>
+<text x="660" y="236" fill="#aab8cc" font-size="18">A session you can continue.</text>
+<rect x="660" y="265" width="202" height="38" rx="9" fill="#2563eb"/><text x="684" y="290" fill="#fff" font-size="15" font-weight="650">Continue from Codex</text>
+</g></svg>

@@ -41,7 +41,7 @@ function preparedWithProvenance(mode: 'smart' | 'full') {
   const pluginSource = mode === 'full'
     ? {
         kind: 'plugin' as const,
-        plugin: 'dsh-codex-handoff' as const,
+        plugin: 'dsh-threadbridge' as const,
         sourceAgent: 'codex' as const,
         sourceSessionId,
         rolloutRevisionId,
@@ -53,7 +53,7 @@ function preparedWithProvenance(mode: 'smart' | 'full') {
       }
     : {
         kind: 'plugin' as const,
-        plugin: 'dsh-codex-handoff' as const,
+        plugin: 'dsh-threadbridge' as const,
         sourceAgent: 'codex' as const,
         sourceSessionId,
         rolloutRevisionId,
@@ -105,13 +105,13 @@ function runtime(
     await candidate.setup?.({})
     const pluginSource = sourceMode === 'smart'
       ? {
-          kind: 'plugin', plugin: 'dsh-codex-handoff', sourceAgent: 'codex',
+          kind: 'plugin', plugin: 'dsh-threadbridge', sourceAgent: 'codex',
           sourceSessionId: sourceIdentity.sessionId, rolloutRevisionId: sourceIdentity.rolloutRevisionId,
           fingerprint: sourceIdentity.fingerprint, mode: sourceMode, compilerSchema: '1.0.0',
           form: 'snapshot', sections: [{ name: 'Objective', text: 'Continue the imported task.' }],
         }
       : {
-          kind: 'plugin', plugin: 'dsh-codex-handoff', sourceAgent: 'codex',
+          kind: 'plugin', plugin: 'dsh-threadbridge', sourceAgent: 'codex',
           sourceSessionId: sourceIdentity.sessionId, rolloutRevisionId: sourceIdentity.rolloutRevisionId,
           fingerprint: sourceIdentity.fingerprint, mode: sourceMode, compilerSchema: '1.0.0',
           form: 'notice', summary: 'Imported read-only Codex history; historical tools were not executed.',
@@ -1133,7 +1133,7 @@ describe('DshSessionGateway', () => {
         type: 'user/message',
         data: {
           source: {
-            kind: 'plugin', plugin: 'dsh-codex-handoff', sourceAgent: 'codex',
+            kind: 'plugin', plugin: 'dsh-threadbridge', sourceAgent: 'codex',
             sourceSessionId: '[REDACTED]', rolloutRevisionId: '[REDACTED]',
             fingerprint: request.sourceFingerprint, mode: 'smart', compilerSchema: '1.0.0',
             form: 'snapshot', sections: [{ name: 'Objective', text: 'Continue the imported task.' }],

@@ -32,7 +32,7 @@ try {
 
   // This package lives inside the official workspace and uses workspace:^ for
   // every DSH client package. It is disposable and never modifies this repo.
-  workspacePackage = join(checkout, 'packages', 'client', 'dsh-codex-handoff')
+  workspacePackage = join(checkout, 'packages', 'client', 'dsh-threadbridge')
   assertWithin(workspacePackage, absoluteTempRoot, 'temporary client workspace package')
   await mkdir(workspacePackage, { recursive: true })
   const officialClientPackages = [
@@ -45,7 +45,7 @@ try {
   ]
   const dependencies = Object.fromEntries(officialClientPackages.map(name => [name, 'workspace:^']))
   await writeFile(join(workspacePackage, 'package.json'), JSON.stringify({
-    name: 'dsh-codex-handoff-pinned-client-acceptance',
+    name: 'dsh-threadbridge-pinned-client-acceptance',
     version: '0.0.0',
     private: true,
     type: 'module',

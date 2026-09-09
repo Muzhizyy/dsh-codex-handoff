@@ -28,3 +28,8 @@ The source copy excludes dependency trees, build caches, original `.desktop-test
 
 GitHub CI has been configured but has not run on GitHub. No remote repository or package release is created by these local checks. See [publishing](PUBLISHING.md).
 已配置 CI，尚未在 GitHub 执行。此次本地检查未创建远程仓库或发布包，后续步骤见发布指南。
+
+## Branding update / 命名与展示更新
+
+The public package is now `dsh-threadbridge` (ThreadBridge). Package metadata, plugin identifiers, descriptor references, styles, and related assertions were updated together. The 185-test suite, type checks, lint, builds, and renamed tarball installation/module-loading check passed. The documentation check was rerun successfully after moving lifecycle guidance into DEVELOPMENT.md. Host integration notes above still apply.
+新包名为 `dsh-threadbridge`。名称已同步到包配置、插件标识、描述文件引用、样式和相关断言。185 个测试、类型检查、lint、构建，以及新名称下的打包安装/模块加载检查通过。生命周期说明移入开发文档后，文档检查重跑通过。

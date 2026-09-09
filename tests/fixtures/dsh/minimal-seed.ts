@@ -12,7 +12,7 @@ export const MINIMAL_DSH_SEED = [
       content: [{ type: 'text', text: 'Imported fixture context.' }],
       source: {
         kind: 'plugin',
-        plugin: 'dsh-codex-handoff',
+        plugin: 'dsh-threadbridge',
         sourceAgent: 'codex',
         sourceSessionId: 'source-session-1',
         rolloutRevisionId: 'rollout-1',

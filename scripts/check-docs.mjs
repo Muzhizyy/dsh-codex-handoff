@@ -8,6 +8,7 @@ const files = {
   license: await readFile(resolve(root, 'LICENSE'), 'utf8'),
   changelog: await readFile(resolve(root, 'CHANGELOG.md'), 'utf8'),
 }
+const operationalDocs = files.readme + await readFile(resolve(root, 'docs/USAGE.md'), 'utf8') + await readFile(resolve(root, 'docs/DEVELOPMENT.md'), 'utf8')
 const requiredReadmeTerms = [
   'd347e703908d0406b7a7ef80e3a0e594d86b2215',
   'Smart',
@@ -21,7 +22,7 @@ const requiredReadmeTerms = [
   'created_unattached',
 ]
 for (const term of requiredReadmeTerms) {
-  if (!files.readme.includes(term)) throw new Error(`README is missing required disclosure/topic: ${term}`)
+  if (!operationalDocs.includes(term)) throw new Error(`Documentation is missing required disclosure/topic: ${term}`)
 }
 if (!files.license.startsWith('MIT License')) throw new Error('LICENSE is not the MIT text')
 if (!files.changelog.includes('0.1.0-alpha.1')) throw new Error('CHANGELOG has no current release entry')

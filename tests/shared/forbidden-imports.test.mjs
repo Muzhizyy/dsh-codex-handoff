@@ -39,7 +39,7 @@ describe('forbidden import gate', () => {
 
   it('rejects package self/alias imports and DSH imports outside the thin LLM adapter', async () => {
     const result = await runGate({
-      'src/shared/bad.ts': "import own from 'dsh-codex-handoff'; import alias from '@/other'; export { own, alias };",
+      'src/shared/bad.ts': "import own from 'dsh-threadbridge'; import alias from '@/other'; export { own, alias };",
       'src/handoff/bad.ts': "import agent from '@deepseek-ai/dsh-agent'; export { agent };",
     })
     expect(result.failed).toBe(true)
