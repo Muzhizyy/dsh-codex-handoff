@@ -322,7 +322,7 @@ export interface DshGatewayOptions {
 
 const COMPILER_SCHEMA = '1.0.0'
 const IMPORT_INDEX_SCHEMA = 2 as const
-const INDEX_NAMESPACE = 'dsh-threadbridge/imports'
+const INDEX_NAMESPACE = 'dsh-codex-handoff/imports'
 
 function recordsEqual(left: ImportRecordRead | undefined, right: ImportRecordRead | undefined): boolean {
   return JSON.stringify(left) === JSON.stringify(right)
@@ -621,7 +621,7 @@ function verifiedFromObservation(value: unknown, expectation: DestinationExpecta
   if (cwd !== expectation.cwd) return destinationConflict(now, 'cwd-mismatch', cwd)
   if (observation.events === undefined) return destinationUnknown(now, 'metadata-missing')
   const pluginSources = observation.events.map(sourceOfEvent).filter((source): source is Record<string, unknown> => source !== undefined)
-    .filter(source => source.kind === 'plugin' && source.plugin === 'dsh-threadbridge' && (
+    .filter(source => source.kind === 'plugin' && source.plugin === 'dsh-codex-handoff' && (
       source.form === 'notice' && typeof source.summary === 'string' && source.summary.length > 0
       || source.form === 'snapshot' && Array.isArray(source.sections)
     ))

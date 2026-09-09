@@ -75,7 +75,7 @@ function runtimeFor(sourceMode: 'smart' | 'full' = 'full'): DshGatewayRuntime {
         const session = {
           header: { id: options.sessionId, cwd: options.meta.cwd, isSeeded: false },
           snapshotEvents: () => [{ type: 'user/message', data: { source: {
-            kind: 'plugin', plugin: 'dsh-threadbridge', sourceAgent: 'codex', sourceSessionId: 'source-session-1',
+            kind: 'plugin', plugin: 'dsh-codex-handoff', sourceAgent: 'codex', sourceSessionId: 'source-session-1',
             rolloutRevisionId: 'rollout-1', fingerprint: 'fingerprint-123456', mode: sourceMode, compilerSchema: '1.0.0',
             form: 'notice', summary: 'Imported read-only Codex history; historical tools were not executed.',
           } } }],

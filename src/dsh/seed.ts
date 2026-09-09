@@ -198,7 +198,7 @@ function diagnostic(code: string, message: string): Diagnostic {
 function sourceNotice(session: NormalizedSession): PluginSource {
   return {
     kind: 'plugin',
-    plugin: 'dsh-threadbridge',
+    plugin: 'dsh-codex-handoff',
     sourceAgent: 'codex',
     sourceSessionId: session.source.sessionId,
     rolloutRevisionId: session.source.rolloutRevisionId,

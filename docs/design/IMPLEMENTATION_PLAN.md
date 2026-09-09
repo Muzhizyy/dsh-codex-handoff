@@ -1,6 +1,6 @@
 > Historical design document / 历史设计材料。May describe planned or superseded behavior. For current behavior and checks, use the root README and `../VALIDATION.md`.
 
-# dsh-threadbridge 实施计划
+# dsh-codex-handoff 实施计划
 
 > 本文件只规划实际实现；当前阶段不产生源代码、测试、配置或构建脚本。
 > 所有 source/test/config/fix/refactor 必须由 **GPT-5.6 Luna X High** 完成。

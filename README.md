@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="assets/hero.svg" alt="ThreadBridge" width="100%" />
+  <img src="assets/hero.svg" alt="DSH Codex Handoff" width="100%" />
 </p>
 
-<h1 align="center">ThreadBridge</h1>
+<h1 align="center">DSH Codex Handoff</h1>
 <p align="center"><strong>Your Codex work, continued in DeepSeek Harness.</strong></p>
 <p align="center">
   <strong>English</strong> · <a href="README.zh-CN.md">简体中文</a>
@@ -15,13 +15,13 @@
 
 You have already explained the project, explored the code, and worked through the first few attempts in Codex. When you move to DSH, that context should come with you.
 
-**ThreadBridge brings your Codex conversations, decisions, and current repository context into a DSH session you can keep working in.** Find a conversation, preview the handoff, and pick up the task.
+**DSH Codex Handoff brings your Codex conversations, decisions, and current repository context into a DSH session you can keep working in.** Find a conversation, preview the handoff, and pick up the task.
 
-<p align="center"><a href="#why-threadbridge">Why ThreadBridge</a> · <a href="#quick-start">Quick start</a> · <a href="#smart-or-full">Smart or Full</a> · <a href="#how-it-works">How it works</a></p>
+<p align="center"><a href="#why-dsh-codex-handoff">Why DSH Codex Handoff</a> · <a href="#quick-start">Quick start</a> · <a href="#smart-or-full">Smart or Full</a> · <a href="#how-it-works">How it works</a></p>
 
-## Why ThreadBridge
+## Why DSH Codex Handoff
 
-| What you want to do | What ThreadBridge brings |
+| What you want to do | What DSH Codex Handoff brings |
 | --- | --- |
 | Continue a feature in DSH | The goal, decisions, unresolved work, and relevant repository facts. |
 | Find a conversation from earlier | Search across active and archived Codex sessions, with previews. |
@@ -31,7 +31,7 @@ You have already explained the project, explored the code, and worked through th
 
 ### Context that follows the code
 
-A useful handoff needs more than a summary of what the last agent said. ThreadBridge inspects the working directory and repository so the next session can distinguish earlier intent from the code that is there now.
+A useful handoff needs more than a summary of what the last agent said. DSH Codex Handoff inspects the working directory and repository so the next session can distinguish earlier intent from the code that is there now.
 
 ### A choice in how much to bring
 
@@ -49,7 +49,7 @@ The result is a normal DSH session created through its Agent API. Open it and ke
 pnpm install --frozen-lockfile
 pnpm build
 pnpm pack
-dsh plugin --profile web add ./dsh-threadbridge-0.1.0-alpha.1.tgz
+dsh plugin --profile web add ./dsh-codex-handoff-0.1.0-alpha.1.tgz
 ```
 
 Restart the DSH Web profile. In the sidebar, open **Continue from Codex**.
@@ -85,7 +85,7 @@ flowchart LR
     A --> N[Continue the task in DSH]
 ```
 
-ThreadBridge reads Codex data without modifying it. It compiles the selected context, creates the DSH session, and checks that the session is visible before opening it. Matching source fingerprints make equivalent creation retries idempotent.
+DSH Codex Handoff reads Codex data without modifying it. It compiles the selected context, creates the DSH session, and checks that the session is visible before opening it. Matching source fingerprints make equivalent creation retries idempotent.
 
 ## Make it yours
 

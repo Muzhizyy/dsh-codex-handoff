@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="assets/hero.svg" alt="ThreadBridge" width="100%" />
+  <img src="assets/hero.svg" alt="DSH Codex Handoff" width="100%" />
 </p>
 
-<h1 align="center">ThreadBridge</h1>
+<h1 align="center">DSH Codex Handoff</h1>
 <p align="center"><strong>让 Codex 的工作，在 DeepSeek Harness 继续。</strong></p>
 <p align="center">
   <a href="README.md">English</a> · <strong>简体中文</strong>
@@ -15,13 +15,13 @@
 
 项目背景已经讲过，代码已经读过，方案也试过几轮。切换到 DSH 时，这些上下文应该跟着你一起走。
 
-**ThreadBridge 将 Codex 的对话、决策和当前仓库上下文带入 DSH，让你从已有进展接着做。** 找到会话、预览交接内容，然后继续任务。
+**DSH Codex Handoff 将 Codex 的对话、决策和当前仓库上下文带入 DSH，让你从已有进展接着做。** 找到会话、预览交接内容，然后继续任务。
 
-<p align="center"><a href="#为什么用-threadbridge">为什么用它</a> · <a href="#快速开始">快速开始</a> · <a href="#smart-还是-full">模式选择</a> · <a href="#它是怎么工作的">工作原理</a></p>
+<p align="center"><a href="#为什么用-dsh-codex-handoff">为什么用它</a> · <a href="#快速开始">快速开始</a> · <a href="#smart-还是-full">模式选择</a> · <a href="#它是怎么工作的">工作原理</a></p>
 
-## 为什么用 ThreadBridge
+## 为什么用 DSH Codex Handoff
 
-| 你想做的事 | ThreadBridge 带来的帮助 |
+| 你想做的事 | DSH Codex Handoff 带来的帮助 |
 | --- | --- |
 | 在 DSH 中继续一个功能 | 带上任务目标、已有决策、待办工作和相关仓库事实。 |
 | 找回之前的一段对话 | 搜索活动与归档 Codex 会话，并预览内容。 |
@@ -31,7 +31,7 @@
 
 ### 上下文跟着代码走
 
-一次有用的交接，需要知道“之前打算做什么”，也需要知道“代码现在是什么样”。ThreadBridge 检查实际工作目录和仓库，让新会话获得贴近当前项目的起点。
+一次有用的交接，需要知道“之前打算做什么”，也需要知道“代码现在是什么样”。DSH Codex Handoff 检查实际工作目录和仓库，让新会话获得贴近当前项目的起点。
 
 ### 带多少，由你决定
 
@@ -39,7 +39,7 @@
 
 ### 接上后，就在 DSH 里继续
 
-ThreadBridge 通过 DSH Agent API 创建普通会话。打开后，直接使用你在 DSH 中配置的模型与工具继续开发。
+DSH Codex Handoff 通过 DSH Agent API 创建普通会话。打开后，直接使用你在 DSH 中配置的模型与工具继续开发。
 
 ## 快速开始
 
@@ -49,7 +49,7 @@ ThreadBridge 通过 DSH Agent API 创建普通会话。打开后，直接使用�
 pnpm install --frozen-lockfile
 pnpm build
 pnpm pack
-dsh plugin --profile web add ./dsh-threadbridge-0.1.0-alpha.1.tgz
+dsh plugin --profile web add ./dsh-codex-handoff-0.1.0-alpha.1.tgz
 ```
 
 重启 DSH Web profile，在侧边栏打开 **从 Codex 继续 / Continue from Codex**。
@@ -85,7 +85,7 @@ flowchart LR
     A --> N[在 DSH 继续任务]
 ```
 
-ThreadBridge 只读访问 Codex 数据，编译选定上下文，通过 DSH 创建会话，并在确认会话可见后打开它。对于来源指纹相同的等价创建请求，重试保持幂等。
+DSH Codex Handoff 只读访问 Codex 数据，编译选定上下文，通过 DSH 创建会话，并在确认会话可见后打开它。对于来源指纹相同的等价创建请求，重试保持幂等。
 
 ## 一起把交接做好
 

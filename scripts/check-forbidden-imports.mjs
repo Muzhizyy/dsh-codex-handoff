@@ -3,7 +3,7 @@ import { readdir, readFile } from 'node:fs/promises'
 import { join, sep } from 'node:path'
 
 const root = process.env.FORBIDDEN_IMPORT_ROOT ?? process.cwd()
-const packageName = 'dsh-threadbridge'
+const packageName = 'dsh-codex-handoff'
 const productionRoots = ['src/shared', 'src/codex', 'src/repo', 'src/handoff', 'src/dsh', 'src/host', 'src/client']
 const builtinNames = new Set(builtinModules.map(name => name.replace(/^node:/, '')))
 

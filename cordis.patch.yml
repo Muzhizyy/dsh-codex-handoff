@@ -1,4 +1,4 @@
-# dsh-threadbridge is an additive Host layer.  The Web/base profile remains
+# dsh-codex-handoff is an additive Host layer.  The Web/base profile remains
 # the owner of storage, session, Agent and Typert composition; this row only
 # mounts the plugin after those public services are available.
 #
@@ -6,7 +6,7 @@
 # disable base rows here: the plugin is not a standalone DSH profile.
 - insert:
     - id: codex-handoff
-      name: dsh-threadbridge
+      name: dsh-codex-handoff
       inject:
         - agents
         - agentDefaultModel

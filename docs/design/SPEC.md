@@ -1,6 +1,6 @@
 > Historical design document / 历史设计材料。May describe planned or superseded behavior. For current behavior and checks, use the root README and `../VALIDATION.md`.
 
-# dsh-threadbridge 产品与技术规格
+# dsh-codex-handoff 产品与技术规格
 
 > 状态：MVP implementation-ready
 > 研究基线：见 `RESEARCH.md`，DSH `0.1.3-alpha.1` / commit `d347e703…`，Codex commit `de787406…`
@@ -650,7 +650,7 @@ Seed compiler is not considered implemented until a real `Session.create`/`ctx.a
 | Source unit | Required v2 output | Required fields / policy |
 |---|---|---|
 | start of imported interaction | `turn/start` | 1-based monotonically increasing `turn`; event `seq` contiguous from 0; safe integer `time` from source or deterministic fallback |
-| source metadata | `user/message` + `surfaceOp:'append'` | stable deterministic message id; role user; source `{kind:'plugin', plugin:'dsh-threadbridge', form:'notice'|'snapshot', ...}` |
+| source metadata | `user/message` + `surfaceOp:'append'` | stable deterministic message id; role user; source `{kind:'plugin', plugin:'dsh-codex-handoff', form:'notice'|'snapshot', ...}` |
 | original human message | `user/message` + append | identified message, role user, source `{kind:'user'}`; adjacent source user items may share one turn only when chronology is unambiguous |
 | model step | `step/start` | same turn; 1-based step; precedes assistant/tool events |
 | assistant final item | `assistant/message` + append | deterministic message id; `turn/step`; source `{kind:'model', provider, model}` from canonical source metadata, or explicit `codex-import`/`unknown` labels; content preserves text/reasoning-summary/tool-call blocks |
@@ -698,7 +698,7 @@ LLM output is candidate evidence, never authoritative Git/filesystem facts. Mode
 Compiled context uses a normal DSH user-role message with source:
 
 ```ts
-{ kind: 'plugin', plugin: 'dsh-threadbridge', form: 'snapshot', sections: [...] }
+{ kind: 'plugin', plugin: 'dsh-codex-handoff', form: 'snapshot', sections: [...] }
 ```
 
 It is seeded in a balanced completed turn and does not immediately run the model. Opening the session may prefill a local draft such as “Continue from this handoff” but MUST require an explicit user submit before model/tool execution.

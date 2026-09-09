@@ -7,7 +7,7 @@ export const NS = 'codex-handoff' as const
 
 export const en = {
   action: 'Continue from Codex',
-  title: 'ThreadBridge · Continue from Codex',
+  title: 'DSH Codex Handoff · Continue from Codex',
   searchPlaceholder: 'Search Codex sessions',
   search: 'Search',
   archivedAll: 'All sessions',
@@ -127,7 +127,7 @@ export const en = {
 
 export const zh = {
   action: '从 Codex 继续',
-  title: 'ThreadBridge · 从 Codex 继续',
+  title: 'DSH Codex Handoff · 从 Codex 继续',
   searchPlaceholder: '搜索 Codex 会话',
   search: '搜索',
   archivedAll: '全部会话',

@@ -1,4 +1,4 @@
-# ThreadBridge: usage, privacy and troubleshooting / 使用、隐私与故障排查
+# DSH Codex Handoff: usage, privacy and troubleshooting / 使用、隐私与故障排查
 
 Supported upstream baseline / 上游适配基线：DSH `0.1.3-alpha.1`, commit `d347e703908d0406b7a7ef80e3a0e594d86b2215`.
 
@@ -23,7 +23,7 @@ The importer never replays tools, writes Codex source data, or directly edits DS
 | `SOURCE_CHANGED` | Discover and preview the source again. |
 | `SESSION_NOT_VISIBLE` | Refresh DSH and inspect the session list before retrying. |
 
-Uninstall with `dsh plugin --profile web remove dsh-threadbridge`, then restart the profile. Existing DSH sessions and Codex source data remain.
+Uninstall with `dsh plugin --profile web remove dsh-codex-handoff`, then restart the profile. Existing DSH sessions and Codex source data remain.
 
 
 
@@ -55,7 +55,7 @@ Uninstall with `dsh plugin --profile web remove dsh-threadbridge`, then restart 
 卸载：
 
 ```sh
-dsh plugin --profile web remove dsh-threadbridge
+dsh plugin --profile web remove dsh-codex-handoff
 ```
 
 卸载只移除插件 bundle 层，不删除已经创建的 DSH session、Codex 源文件、仓库文件或用户的 DSH home。若 profile 正在运行，请按 DSH 规则重启后确认插件行已消失。

@@ -61,8 +61,8 @@ describe('Codex handoff React slot components', () => {
       React.createElement(HandoffAction, { model, labelKey: 'action', wide: true, onActivate: () => model.open() }),
       React.createElement(HandoffOverlay, { model, titleKey: 'title', onKey: key => model.keyboard(key) }),
     ))
-    const actionStyle = document.querySelector('style[data-dsh-threadbridge-action-style="true"]')
-    expect(actionStyle?.textContent).toContain('.dsh-threadbridge-action[data-wide="false"]')
+    const actionStyle = document.querySelector('style[data-dsh-codex-handoff-action-style="true"]')
+    expect(actionStyle?.textContent).toContain('.dsh-codex-handoff-action[data-wide="false"]')
     expect(actionStyle?.textContent).toContain('border-radius: 12px')
     fireEvent.click(screen.getByRole('button', { name: en.action }))
     await waitFor(() => expect(screen.getByRole('dialog')).toBeTruthy())
@@ -130,7 +130,7 @@ describe('Codex handoff React slot components', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: /Updated:/ })).toBeTruthy())
     expect(screen.getByRole('button', { name: /Messages:/ })).toBeTruthy()
     expect(screen.getByRole('button', { name: /Health:/ })).toBeTruthy()
-    expect(document.querySelector('.dsh-threadbridge-session-meta')?.textContent).not.toContain(en.tools)
+    expect(document.querySelector('.dsh-codex-handoff-session-meta')?.textContent).not.toContain(en.tools)
     await act(async () => {
       language = 'zh'
       for (const listener of listeners) listener()
@@ -195,11 +195,11 @@ describe('Codex handoff React slot components', () => {
     expect(style?.textContent).toContain('position: fixed')
     expect(style?.textContent).toContain('inset: 0')
     expect(style?.textContent).toContain('position: sticky')
-    expect(style?.textContent).toContain('.dsh-threadbridge-toolbar')
+    expect(style?.textContent).toContain('.dsh-codex-handoff-toolbar')
     expect(style?.textContent).toContain('@media (max-width: 760px)')
     expect(style?.textContent).toContain('@media (forced-colors: active)')
-    expect(screen.getByRole('dialog').querySelector('.dsh-threadbridge-workspace')).toBeTruthy()
-    expect(screen.getByRole('region', { name: en.focusResults }).classList.contains('dsh-threadbridge-results')).toBe(true)
+    expect(screen.getByRole('dialog').querySelector('.dsh-codex-handoff-workspace')).toBeTruthy()
+    expect(screen.getByRole('region', { name: en.focusResults }).classList.contains('dsh-codex-handoff-results')).toBe(true)
   })
 
   it('keeps deterministic continuation reachable and renders Smart current repository facts', async () => {

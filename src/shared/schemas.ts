@@ -1132,7 +1132,7 @@ export const SessionPreviewSchema = z
 
 const pluginSourceBaseShape = {
   kind: z.literal('plugin'),
-  plugin: z.literal('dsh-threadbridge'),
+  plugin: z.literal('dsh-codex-handoff'),
   sourceAgent: z.literal('codex'),
   sourceSessionId: boundedId,
   rolloutRevisionId: boundedId,

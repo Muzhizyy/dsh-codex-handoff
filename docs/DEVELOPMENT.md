@@ -30,5 +30,5 @@ Keep the DSH compatibility declaration and pinned SHA in sync when upgrading. Ne
 
 ## Dependency lifecycle / 依赖构建脚本
 
-Dependency build scripts are controlled through pnpm `allowBuilds`; the repository allows esbuild. ThreadBridge has no `prepare` install hook. Consumers of the built tarball do not compile the source during installation.
-依赖构建脚本通过 pnpm `allowBuilds` 管理，项目允许 esbuild。ThreadBridge 没有 `prepare` 安装钩子，安装已构建的 tarball 无需编译源码。
+Dependency build scripts are controlled through pnpm `allowBuilds`; the repository allows esbuild. DSH Codex Handoff has no `prepare` install hook. Consumers of the built tarball do not compile the source during installation.
+依赖构建脚本通过 pnpm `allowBuilds` 管理，项目允许 esbuild。DSH Codex Handoff 没有 `prepare` 安装钩子，安装已构建的 tarball 无需编译源码。

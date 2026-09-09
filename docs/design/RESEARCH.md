@@ -1,6 +1,6 @@
 > Historical design document / 历史设计材料。May describe planned or superseded behavior. For current behavior and checks, use the root README and `../VALIDATION.md`.
 
-# dsh-threadbridge 调研报告
+# dsh-codex-handoff 调研报告
 
 > 调研日期：2026-09-05（Asia/Shanghai）
 > 结论状态：实现前基线；所有技术结论均来自固定 commit 的一手源码、官方文档或本机只读结构抽样。
@@ -225,7 +225,7 @@ Discussion #1087 宣布多源 session import、列表/搜索/批量、超大内�
 4. **强类型 Remote。** 方法建议为 discover/search/preview/analyze/create/getCompatibility；所有参数 Host 重新验证。
 5. **确定性管线先行，LLM 是受控增强。** parser、repo inspection、reconciliation、budget 全部确定性；LLM 只把经过 redaction 的证据提炼成候选 claims，输出必须 schema validate，再与确定性事实 reconcile。
 6. **不可变导入 revision。** import key = source type + source session id + content fingerprint + mode + canonical workspace path；同 key 重试返回已有目标，不改写历史；源变化产生新 session revision。
-7. **模型可见 handoff 用普通 user/plugin-source message。** 使用 DSH 已声明的 `{kind:'plugin', plugin:'dsh-threadbridge', form:'snapshot', sections:[...]}`，不发明 message source kind。审计基线是 typed storage-domain import index + recognized source notice；插件自有 `ignorable:true` log-only event 只能在真实 unknown-reader/persistence/resume spike 通过后作为可选增强。
+7. **模型可见 handoff 用普通 user/plugin-source message。** 使用 DSH 已声明的 `{kind:'plugin', plugin:'dsh-codex-handoff', form:'snapshot', sections:[...]}`，不发明 message source kind。审计基线是 typed storage-domain import index + recognized source notice；插件自有 `ignorable:true` log-only event 只能在真实 unknown-reader/persistence/resume spike 通过后作为可选增强。
 8. **不要承诺完整恢复加密或缺失历史。** Full Trajectory 是“所有可解析、可安全表示的历史”，并用 completeness/diagnostics 明示缺口。
 9. **overlay 不是页面。** MVP 使用 sidebar action + shell overlay，未来只有在目标 DSH 提供经验证的 page/router slot 后再升级。
 

@@ -31,5 +31,5 @@ GitHub CI has been configured but has not run on GitHub. No remote repository or
 
 ## Branding update / 命名与展示更新
 
-The public package is now `dsh-threadbridge` (ThreadBridge). Package metadata, plugin identifiers, descriptor references, styles, and related assertions were updated together. The 185-test suite, type checks, lint, builds, and renamed tarball installation/module-loading check passed. The documentation check was rerun successfully after moving lifecycle guidance into DEVELOPMENT.md. Host integration notes above still apply.
-新包名为 `dsh-threadbridge`。名称已同步到包配置、插件标识、描述文件引用、样式和相关断言。185 个测试、类型检查、lint、构建，以及新名称下的打包安装/模块加载检查通过。生命周期说明移入开发文档后，文档检查重跑通过。
+The public package name is restored to `dsh-codex-handoff` (DSH Codex Handoff). Package metadata, plugin identifiers, descriptor references, styles, and related assertions were updated together. The 185-test suite, type checks, lint, builds, and renamed tarball installation/module-loading check passed. The complete `pnpm check`, including the documentation gate, passed after restoring the original name. Host integration notes above still apply.
+包名恢复为 `dsh-codex-handoff`。名称已同步到包配置、插件标识、描述文件引用、样式和相关断言。185 个测试、类型检查、lint、构建，以及新名称下的打包安装/模块加载检查通过。恢复原名后，完整 `pnpm check`（含文档检查）通过。

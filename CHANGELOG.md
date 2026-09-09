@@ -9,6 +9,7 @@
 
 ## Branding and documentation update — Unreleased
 
-- New project identity and English/Chinese README presentation.
+- Restore the DSH Codex Handoff name across the package, plugin, and bilingual documentation.
+- English/Chinese README presentation with synchronized names and examples.
 - Pro / Flash terminology for the collaboration projects.
 - Local vector header artwork, concrete usage examples, and revised quick starts.

@@ -1,5 +1,5 @@
 {
-  "name": "dsh-threadbridge",
+  "name": "dsh-codex-handoff",
   "version": "0.1.0-alpha.1",
   "description": "Bring your Codex conversations, decisions, and repository context into DeepSeek Harness.",
   "license": "MIT",

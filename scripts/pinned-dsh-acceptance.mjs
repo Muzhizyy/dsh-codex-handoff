@@ -211,7 +211,7 @@ function assertSeedContract(seed, compilation) {
   assert(call && result, 'paired tool events missing')
   assert(Array.isArray(result.sourceEventSeqs) && result.sourceEventSeqs.includes(call.seq), 'tool provenance reference missing')
   assert(compilation.diagnostics.every((diagnostic) => typeof diagnostic.code === 'string'), 'diagnostic code missing')
-  const notice = seed.find((item) => (item.data?.source ?? item.data?.message?.source)?.plugin === 'dsh-threadbridge')
+  const notice = seed.find((item) => (item.data?.source ?? item.data?.message?.source)?.plugin === 'dsh-codex-handoff')
   const noticeSource = notice?.data?.source ?? notice?.data?.message?.source
   assert(noticeSource?.form === 'notice', `includeNotice did not emit a plugin-source notice: ${seed.map((item) => `${item.type}:${JSON.stringify(item.data).slice(0, 500)}`).join(' | ')}`)
   assert(typeof noticeSource.summary === 'string' && noticeSource.summary.length > 0, 'plugin-source notice summary missing')
@@ -435,7 +435,7 @@ async function readPersisted(ctx, id) {
 }
 
 function sourceNotice(events) {
-  return events.find((item) => (item.data?.source ?? item.data?.message?.source)?.plugin === 'dsh-threadbridge')
+  return events.find((item) => (item.data?.source ?? item.data?.message?.source)?.plugin === 'dsh-codex-handoff')
 }
 
 async function exerciseGatewayLifecycle(normalizedSession, compiledSeed) {

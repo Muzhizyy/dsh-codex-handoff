@@ -229,7 +229,7 @@ describe('Smart handoff deterministic engine', () => {
     expect(captured?.tools).toEqual([])
     expect(captured).not.toHaveProperty('maxTokens')
     expect(captured?.system).toContain('Return only JSON')
-    expect(captured?.messages).toMatchObject([{ role: 'user', source: { kind: 'plugin', plugin: 'dsh-threadbridge' } }])
+    expect(captured?.messages).toMatchObject([{ role: 'user', source: { kind: 'plugin', plugin: 'dsh-codex-handoff' } }])
     let deepseekCaptured: Record<string, unknown> | undefined
     const deepseek = new DshLlmAnalyzer({
       agentDefaultModel: { currentSelection: () => ({ provider: 'deepseek', model: 'DeepSeek-V4-Flash', reasoningEffort: 'high' }) },

@@ -3,7 +3,7 @@ import type {
   RemoteResult,
   TypertRemoteContribution,
 } from '@deepseek-ai/dsh-typert-protocol'
-import type { AnalyzeRequest, CompatibilityView, CreateOutcome, CreateRequest, DiscoverRequest, PreviewRequest, SessionPage, SessionPreview, SmartPreview } from 'dsh-threadbridge/types'
+import type { AnalyzeRequest, CompatibilityView, CreateOutcome, CreateRequest, DiscoverRequest, PreviewRequest, SessionPage, SessionPreview, SmartPreview } from 'dsh-codex-handoff/types'
 
 declare module '@deepseek-ai/dsh-typert-protocol' {
   interface TypertRemoteNamespace$636f64657848616e646f6666 {
