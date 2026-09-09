@@ -1,0 +1,14 @@
+{"timestamp":"2026-09-05T05:00:00.000Z","ordinal":0,"type":"session_meta","payload":{"id":"thread-lifecycle","timestamp":"2026-09-05T05:00:00.000Z"}}
+{"timestamp":"2026-09-05T05:00:01.000Z","ordinal":1,"type":"event_msg","payload":{"type":"task_started","turn_id":"turn-complete"}}
+{"timestamp":"2026-09-05T05:00:02.000Z","ordinal":2,"type":"response_item","payload":{"type":"message","role":"user","content":"Complete me"}}
+{"timestamp":"2026-09-05T05:00:03.000Z","ordinal":3,"type":"response_item","payload":{"type":"message","role":"assistant","content":"Completed response"}}
+{"timestamp":"2026-09-05T05:00:04.000Z","ordinal":4,"type":"event_msg","payload":{"type":"task_complete","turn_id":"turn-complete"}}
+{"timestamp":"2026-09-05T05:00:05.000Z","ordinal":5,"type":"event_msg","payload":{"type":"turn_started","turn_id":"turn-aborted"}}
+{"timestamp":"2026-09-05T05:00:06.000Z","ordinal":6,"type":"response_item","payload":{"type":"message","role":"user","content":"Abort me"}}
+{"timestamp":"2026-09-05T05:00:07.000Z","ordinal":7,"type":"event_msg","payload":{"type":"turn_aborted","turn_id":"turn-aborted","reason":"interrupted"}}
+{"timestamp":"2026-09-05T05:00:08.000Z","ordinal":8,"type":"event_msg","payload":{"type":"turn_started","turn_id":"turn-failed"}}
+{"timestamp":"2026-09-05T05:00:08.100Z","ordinal":9,"type":"response_item","payload":{"type":"message","role":"user","content":"Fail me"}}
+{"timestamp":"2026-09-05T05:00:08.200Z","ordinal":10,"type":"response_item","payload":{"type":"message","role":"assistant","content":"Failed response"}}
+{"timestamp":"2026-09-05T05:00:08.300Z","ordinal":11,"type":"event_msg","payload":{"type":"turn_complete","turn_id":"turn-failed","error":{"message":"synthetic failure"}}}
+{"timestamp":"2026-09-05T05:00:09.000Z","ordinal":12,"type":"event_msg","payload":{"type":"turn_started","turn_id":"turn-interrupted"}}
+{"timestamp":"2026-09-05T05:00:10.000Z","ordinal":13,"type":"response_item","payload":{"type":"message","role":"user","content":"End without completion"}}

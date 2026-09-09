@@ -1,0 +1,18 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "target": "ES2023",
+    "lib": ["ES2023", "DOM"],
+    "types": ["node"]
+  },
+  "include": [
+    "src/shared/**/*.ts",
+    "src/codex/**/*.ts",
+    "src/repo/**/*.ts",
+    "src/dsh/**/*.ts",
+    "src/handoff/**/*.ts",
+    "src/host/**/*.ts"
+  ],
+  "exclude": ["dist", "node_modules"]
+}

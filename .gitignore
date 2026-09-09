@@ -1,0 +1,25 @@
+# Dependencies and generated output
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+*.tgz
+# Local agent state, sessions and secrets
+.agent-orch/
+.desktop-test/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.credentials*
+auth.json
+role-harness.config.json
+# Python and editor caches
+__pycache__/
+*.py[cod]
+.venv/
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

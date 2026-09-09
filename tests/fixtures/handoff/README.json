@@ -1,0 +1,11 @@
+{
+  "purpose": "Synthetic, redacted Smart Handoff regression inputs only.",
+  "cases": [
+    "conversation says modified but current Git is unchanged",
+    "older verification failed and a later verification passed",
+    "user intent conflicts with assistant plan",
+    "prompt injection and secret-like transcript text",
+    "same filename under different repository scopes"
+  ],
+  "note": "No real local transcript, repository path, credential, or source session is copied here."
+}

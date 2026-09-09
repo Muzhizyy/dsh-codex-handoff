@@ -1,0 +1,6 @@
+{"timestamp":"2026-09-05T10:00:00.000Z","ordinal":0,"type":"session_meta","payload":{"id":"thread-normal","cwd":"C:/synthetic/project","timestamp":"2026-09-05T10:00:00.000Z","cli_version":"0.1.0","source":"cli","provider":"openai","model":"test"}}
+{"timestamp":"2026-09-05T10:00:01.000Z","ordinal":1,"type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"Please inspect the project."}]}}
+{"timestamp":"2026-09-05T10:00:02.000Z","ordinal":2,"type":"response_item","payload":{"type":"reasoning","summary":[{"type":"summary_text","text":"Inspecting the project."}]}}
+{"timestamp":"2026-09-05T10:00:03.000Z","ordinal":3,"type":"response_item","payload":{"type":"function_call","name":"shell","arguments":"{\"command\":\"git status\"}","call_id":"call-1"}}
+{"timestamp":"2026-09-05T10:00:04.000Z","ordinal":4,"type":"response_item","payload":{"type":"function_call_output","call_id":"call-1","output":"clean"}}
+{"timestamp":"2026-09-05T10:00:05.000Z","ordinal":5,"type":"response_item","payload":{"type":"message","role":"assistant","content":[{"type":"output_text","text":"The project is clean."}]}}

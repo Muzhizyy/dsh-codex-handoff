@@ -1,0 +1,4 @@
+{"timestamp":"2026-09-05T08:00:00.000Z","ordinal":0,"type":"session_meta","payload":{"id":"thread-history-cross","cwd":"C:/synthetic/project","timestamp":"2026-09-05T08:00:00.000Z"}}
+{"timestamp":"2026-09-05T08:00:01.000Z","ordinal":1,"type":"response_item","payload":{"type":"function_call","name":"run","arguments":"{\"x\":1}","call_id":"cross-call"}}
+{"timestamp":"2026-09-05T08:00:02.000Z","ordinal":2,"type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"Cross rollout objective"}]}}
+{"timestamp":"2026-09-05T08:00:04.000Z","ordinal":4,"type":"response_item","payload":{"type":"message","role":"assistant","content":[{"type":"output_text","text":"Base post-cutoff content must stay hidden"}]}}

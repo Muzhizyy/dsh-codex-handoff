@@ -1,0 +1,4 @@
+{"timestamp":"2026-09-05T03:10:00.000Z","ordinal":0,"type":"session_meta","payload":{"id":"thread-history-rollback","history_base":{"rollout_id":"base","end_ordinal_exclusive":5}}}
+{"timestamp":"2026-09-05T03:10:01.000Z","ordinal":5,"type":"response_item","payload":{"type":"message","role":"user","content":"Remove head instruction"}}
+{"timestamp":"2026-09-05T03:10:02.000Z","ordinal":6,"type":"response_item","payload":{"type":"message","role":"assistant","content":"Remove head response"}}
+{"timestamp":"2026-09-10T03:10:03.000Z","ordinal":7,"type":"event_msg","payload":{"type":"thread_rolled_back","num_turns":2}}

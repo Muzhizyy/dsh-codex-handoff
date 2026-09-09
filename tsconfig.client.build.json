@@ -1,0 +1,18 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "emitDeclarationOnly": true,
+    "outDir": "./dist/.client-types",
+    "rootDir": "./src",
+    "lib": ["ES2022", "DOM"],
+    "types": [],
+    "jsx": "react-jsx",
+    "composite": false
+  },
+  "include": [
+    "src/shared/**/*.ts",
+    "src/client/**/*.ts",
+    "src/client/**/*.tsx"
+  ],
+  "exclude": ["dist", "node_modules"]
+}

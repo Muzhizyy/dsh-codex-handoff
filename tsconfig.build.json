@@ -1,0 +1,20 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "target": "ES2023",
+    "lib": ["ES2023", "DOM"],
+    "types": ["node"],
+    "composite": true
+  },
+  "include": [
+    "src/shared/**/*.ts",
+    "src/codex/**/*.ts",
+    "src/repo/**/*.ts",
+    "src/dsh/**/*.ts",
+    "src/handoff/**/*.ts",
+    "src/host/**/*.ts"
+  ],
+  "exclude": ["dist", "node_modules"]
+}

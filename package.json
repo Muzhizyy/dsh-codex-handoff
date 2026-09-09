@@ -1,0 +1,116 @@
+{
+  "name": "dsh-codex-handoff",
+  "version": "0.1.0-alpha.1",
+  "description": "Continue a Codex coding task in DeepSeek Harness with repository-aware handoff context.",
+  "license": "MIT",
+  "type": "module",
+  "packageManager": "pnpm@11.7.0",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "default": "./dist/client.js"
+    },
+    "./remote": {
+      "types": "./dist/remote.d.ts",
+      "default": "./dist/remote.js"
+    },
+    "./types": {
+      "types": "./dist/shared/types.d.ts",
+      "default": "./dist/shared/types.js"
+    },
+    "./typert": {
+      "types": "./dist/typert.d.ts",
+      "default": "./dist/typert.js"
+    },
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist/",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md",
+    "README.zh-CN.md",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
+    "docs/DEVELOPMENT.md",
+    "docs/VALIDATION.md",
+    "docs/REFERENCES.md",
+    "docs/PUBLISHING.md"
+  ],
+  "dsh": {
+    "compatibility": {
+      "peerDependencies": {
+        "@deepseek-ai/dsh-api-gateway": ">=0.1.3-alpha.1 <0.1.4",
+        "@deepseek-ai/dsh-typert-protocol": ">=0.1.3-alpha.1 <0.1.4"
+      }
+    },
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-api-remotes",
+        "@deepseek-ai/dsh-api-session-controller",
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-renderer",
+        "@deepseek-ai/dsh-client-ui-layout",
+        "@deepseek-ai/dsh-client-ui-sidebar"
+      ]
+    }
+  },
+  "scripts": {
+    "build:host": "tsc -p tsconfig.build.json && node scripts/build-host-entry.mjs",
+    "build:client": "node scripts/build-client.mjs",
+    "generate:typert": "node scripts/generate-typert.mjs",
+    "verify:typert": "node scripts/verify-typert-drift.mjs",
+    "build": "pnpm build:client && pnpm build:host && pnpm generate:typert && node scripts/assert-package-artifacts.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "typecheck:client": "tsc -p tsconfig.client.json --noEmit",
+    "lint": "oxlint src tests scripts",
+    "test": "vitest run",
+    "test:client": "vitest run tests/client",
+    "test:coverage": "vitest run --coverage",
+    "test:pinned-dsh": "pnpm build && node scripts/run-pinned-dsh-spike.mjs",
+    "test:pinned-profile": "node scripts/run-pinned-profile-smoke.mjs",
+    "test:e2e": "pnpm build && node scripts/run-pinned-dsh-spike.mjs",
+    "test:pinned-dsh-client": "pnpm build:client && node scripts/run-pinned-dsh-client.mjs",
+    "test:pinned-dsh-client:ui": "pnpm build:client && node scripts/run-pinned-dsh-client.mjs",
+    "check:forbidden-imports": "node scripts/check-forbidden-imports.mjs",
+    "check:docs": "node scripts/check-docs.mjs",
+    "check:pack": "node scripts/check-pack.mjs",
+    "check": "pnpm typecheck:client && pnpm test:client && pnpm build:client && node scripts/assert-client-artifacts.mjs && pnpm typecheck && pnpm check:forbidden-imports && pnpm lint && pnpm test && pnpm build && pnpm check:pack && pnpm check:docs"
+  },
+  "dependencies": {
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@testing-library/react": "16.1.0",
+    "@types/react": "18.3.23",
+    "@types/react-dom": "18.3.7",
+    "@types/jsdom": "21.1.7",
+    "@types/node": "^22.15.0",
+    "@vitest/coverage-v8": "^4.1.8",
+    "esbuild": "0.25.9",
+    "jsdom": "29.1.1",
+    "oxlint": "^1.76.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.8"
+  }
+}
