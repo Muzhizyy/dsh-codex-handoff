@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import type { CompiledContext, NormalizedSession } from '../../src/shared/index.js'
+import { DshSessionFormatV4SeedEventSchema, type CompiledContext, type NormalizedSession } from '../../src/shared/index.js'
 import { FullTrajectorySeedCompiler, SmartSeedCompiler } from '../../src/dsh/seed.js'
 
 const source = {
@@ -40,7 +40,7 @@ function session(
   }
 }
 
-describe('DSH v2 seed compiler', () => {
+describe('DSH v4 seed compiler', () => {
   it('emits a balanced inert full trajectory with paired tool provenance', () => {
     const result = new FullTrajectorySeedCompiler({ includeNotice: false }).compileDetailed(session([
       { kind: 'message', id: 'u', order: 0, role: 'user', text: 'Continue', source: { locator: 'u' } },
@@ -79,14 +79,47 @@ describe('DSH v2 seed compiler', () => {
     if (emittedToolCall === undefined) throw new Error('tool/call event is missing')
     const emittedToolCallData = emittedToolCall.data as { callId: string }
     const emittedToolResult = seed.find(event => event.type === 'tool/result')?.data as {
-      message: { content: Array<{ toolCallId: string }>; source: { callId: string } }
+      turn: number
+      step: number
+      message: { role: string; toolCallId: string; content: Array<{ type: string; text: string }>; source: { kind: string; callId: string } }
     } | undefined
     if (emittedToolResult === undefined) throw new Error('tool/result event is missing')
     expect(emittedToolCallData.callId).toMatch(/^sha256-[a-f0-9]{64}$/)
     expect(emittedToolCallData.callId).not.toBe('[REDACTED]')
     expect(assistantToolCallContent.id).toBe(emittedToolCallData.callId)
-    expect(emittedToolResult.message.content[0]?.toolCallId).toBe(emittedToolCallData.callId)
+    expect(emittedToolResult.message.role).toBe('tool')
+    expect(emittedToolResult.turn).toBe(1)
+    expect(emittedToolResult.step).toBe(1)
+    expect(emittedToolResult.message.content[0]).toMatchObject({ type: 'text', text: 'done' })
+    expect(emittedToolResult.message.toolCallId).toBe(emittedToolCallData.callId)
+    expect(emittedToolResult.message.source.kind).toBe('tool')
     expect(emittedToolResult.message.source.callId).toBe(emittedToolCallData.callId)
+  })
+
+  it('accepts producer-owned v4 provenance and rejects legacy source and constructor-owned markers', () => {
+    const smart = new SmartSeedCompiler().compile({
+      text: 'safe snapshot',
+      source: {
+        kind: 'plugin', plugin: 'dsh-codex-handoff', sourceAgent: 'codex',
+        sourceSessionId: 'source', rolloutRevisionId: 'revision', fingerprint: 'fingerprint-123456',
+        mode: 'smart', compilerSchema: '1.0.0', form: 'snapshot', sections: [{ name: 'Objective', text: 'safe snapshot' }],
+      },
+      estimatedTokens: 2, estimator: 'fallback', omittedByBudget: {}, diagnostics: [],
+    }) as Array<Record<string, unknown>>
+    const message = smart[2]?.data as { source: Record<string, unknown> }
+    expect(message.source.kind).toBe('plugin:dsh-codex-handoff')
+    expect(message.source.plugin).toBeUndefined()
+    expect(smart.every(event => DshSessionFormatV4SeedEventSchema.safeParse(event).success)).toBe(true)
+
+    const legacyV2Assistant = {
+      type: 'assistant/message', seq: 0, time: 0,
+      data: { id: 'old', role: 'assistant', source: { kind: 'plugin', plugin: 'dsh-codex-handoff' }, content: 'old v2 envelope' },
+      surfaceOp: 'append',
+    }
+    expect(DshSessionFormatV4SeedEventSchema.safeParse(legacyV2Assistant).success).toBe(false)
+    expect(DshSessionFormatV4SeedEventSchema.safeParse({
+      type: 'session/end-seed', seq: 0, time: 0, data: {},
+    }).success).toBe(false)
   })
 
   it('preserves parser-downgraded incomplete actions as text and keeps a balanced turn', () => {
@@ -184,6 +217,8 @@ describe('DSH v2 seed compiler', () => {
     expect(serialized).toContain('"sourceSessionId":"123e4567-e89b-12d3-a456-426614174000"')
     expect(serialized).toContain('"rolloutRevisionId":"550e8400-e29b-41d4-a716-446655440000"')
     expect(lifecycleData.source).toBeUndefined()
+    expect((messageData.source as Record<string, unknown>).kind).toBe('plugin:dsh-codex-handoff')
+    expect((messageData.source as Record<string, unknown>).plugin).toBeUndefined()
     expect((messageData.source as Record<string, unknown>).sourceSessionId).toBe(sourceSessionId)
     expect(serialized).not.toContain('smart-secret')
     expect(serialized).not.toContain('example.test')

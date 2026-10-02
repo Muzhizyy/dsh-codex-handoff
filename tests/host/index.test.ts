@@ -69,23 +69,56 @@ function sourceWithRestart(cwd: string, rediscoveryCase: RediscoveryCase = 'matc
 
 function runtimeFor(sourceMode: 'smart' | 'full' = 'full'): DshGatewayRuntime {
   const sessions = new Map<string, unknown>()
+  const observeSession = async (id: string) => {
+    const session = sessions.get(String(id)) as {
+      readonly header: Record<string, unknown>
+      snapshotEvents(): readonly unknown[]
+    } | undefined
+    if (session === undefined) {
+      throw Object.assign(new Error('session not found'), { code: 'SESSION_QUERY_SESSION_NOT_FOUND' })
+    }
+    const header = structuredClone(session.header)
+    const events = session.snapshotEvents().map(event => structuredClone(event))
+    const makeLease = () => ({
+      source: 'live' as const,
+      header,
+      events,
+      cursor: events.length === 0 ? -1 : (events.at(-1) as { seq: number }).seq,
+      inheritedEventCount: 0,
+      retain: makeLease,
+      [Symbol.dispose]: () => undefined,
+    })
+    return makeLease()
+  }
   return {
     agents: {
       create: async (options: { readonly sessionId: string; readonly meta: { readonly cwd: string } }) => {
+        const events = [{
+          type: 'user/message',
+          seq: 0,
+          time: 0,
+          surfaceOp: 'append',
+          data: {
+            id: 'codex-handoff-notice',
+            role: 'user',
+            content: [{ type: 'text', text: 'Imported read-only Codex history; historical tools were not executed.' }],
+            source: {
+              kind: 'plugin:dsh-codex-handoff', sourceAgent: 'codex', sourceSessionId: 'source-session-1',
+              rolloutRevisionId: 'rollout-1', fingerprint: 'fingerprint-123456', mode: sourceMode, compilerSchema: '1.0.0',
+              form: 'notice', summary: 'Imported read-only Codex history; historical tools were not executed.',
+            },
+          },
+        }]
         const session = {
-          header: { id: options.sessionId, cwd: options.meta.cwd, isSeeded: false },
-          snapshotEvents: () => [{ type: 'user/message', data: { source: {
-            kind: 'plugin', plugin: 'dsh-codex-handoff', sourceAgent: 'codex', sourceSessionId: 'source-session-1',
-            rolloutRevisionId: 'rollout-1', fingerprint: 'fingerprint-123456', mode: sourceMode, compilerSchema: '1.0.0',
-            form: 'notice', summary: 'Imported read-only Codex history; historical tools were not executed.',
-          } } }],
+          header: { version: 4, id: options.sessionId, cwd: options.meta.cwd, isSeeded: false },
+          snapshotEvents: () => events,
         }
         sessions.set(options.sessionId, session)
         return { agent: { id: options.sessionId, session }, dispose: async () => undefined }
       },
     },
     agentDefaultModel: { currentSelection: () => ({ provider: 'mock', model: 'mock' }) },
-    sessionQuery: { inspect: async (id: string) => sessions.get(id) },
+    sessionQuery: { observeSession },
     sessionPersistence: {},
     workspaceRegistry: { resolveByPath: async () => ({ attachSession: async () => undefined }) },
     storageDomain: { open: async () => ({ table: () => ({}) }) },

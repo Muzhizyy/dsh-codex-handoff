@@ -1,5 +1,6 @@
 import {
   CompiledContextSchema,
+  DshSessionFormatV4SeedEventSchema,
   NormalizedSessionSchema,
   type CompiledContext,
   type Diagnostic,
@@ -12,7 +13,7 @@ import {
 } from '../shared/index.js'
 import { HandoffError } from '../shared/errors.js'
 
-/** JSON event envelope accepted by the DSH v2 Session constructor. */
+/** JSON event envelope accepted by the DSH Session Format v4 Session constructor. */
 export interface DshSeedEvent {
   readonly type: string
   readonly seq: number
@@ -162,10 +163,12 @@ function isJsonRecord(value: JsonValue): value is { readonly [key: string]: Json
  * never receives this exception.
  */
 function redactTrustedPluginSource(source: PluginSource): JsonValue {
-  const redacted = redactJson(asJson(source))
+  const { plugin, kind: _legacyKind, ...metadata } = source
+  const redacted = redactJson(asJson({ ...metadata, kind: `plugin:${plugin}` }))
   if (!isJsonRecord(redacted)) throw new Error('plugin provenance must be a JSON object')
   return asJson({
     ...redacted,
+    kind: `plugin:${plugin}`,
     sourceSessionId: source.sourceSessionId,
     rolloutRevisionId: source.rolloutRevisionId,
   })
@@ -242,17 +245,18 @@ function makeAssistantMessage(id: string, content: JsonValue): JsonValue {
   })
 }
 
-function makeToolResultMessage(id: string, idForCall: string, text: string, failed: boolean): JsonValue {
+function makeToolResultMessage(id: string, idForCall: string, text: string, failed: boolean, turn: number, step: number): JsonValue {
   return asJson({
-    id,
-    role: 'user',
-    content: [{
-      type: 'tool-result',
+    turn,
+    step,
+    message: {
+      id,
+      role: 'tool',
+      source: { kind: 'tool', callId: idForCall },
       toolCallId: idForCall,
       content: [textContent(text)],
       ...(failed ? { isError: true } : {}),
-    }],
-    source: { kind: 'tool', callId: idForCall },
+    },
   })
 }
 
@@ -269,26 +273,15 @@ function validateGeneratedSeed(seed: readonly DshSeedEvent[]): void {
     if (!Number.isSafeInteger(event.time) || event.time < 0) {
       throw new Error('DSH seed time is not a non-negative safe integer at ' + index)
     }
-    if (event.type === 'request/header' || event.type === 'request/context' || event.type === 'session/end-seed') {
-      throw new Error('DSH seed contains constructor/live-only event ' + event.type)
-    }
-    if (
-      (event.type === 'user/message' || event.type === 'assistant/message' || event.type === 'tool/result')
-      && event.surfaceOp !== 'append'
-    ) {
-      throw new Error('surface event ' + event.type + ' must carry surfaceOp=append')
-    }
-    if (
-      (event.type === 'turn/start' || event.type === 'turn/end' || event.type === 'step/start'
-        || event.type === 'step/end' || event.type === 'tool/call')
-      && event.surfaceOp !== undefined
-    ) {
-      throw new Error('log-only event ' + event.type + ' must not carry surfaceOp')
-    }
     try {
       if (JSON.stringify(event) === undefined) throw new Error('not JSON')
     } catch {
       throw new Error('DSH seed event is not losslessly JSON serializable at ' + index)
+    }
+    try {
+      DshSessionFormatV4SeedEventSchema.parse(event)
+    } catch (error) {
+      throw new Error(`DSH v4 seed event ${index} is invalid: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 }
@@ -301,7 +294,7 @@ interface IndexedEvent {
 }
 
 /**
- * Compile normalized Codex chronology to inert DSH v2 events.
+ * Compile normalized Codex chronology to inert DSH Session Format v4 events.
  *
  * The compiler never imports DSH and never writes persistence. The gateway
  * supplies this JSON-only seed to the public Agent API, leaving constructor
@@ -329,8 +322,8 @@ export class FullTrajectorySeedCompiler {
   compileDetailed(rawSession: NormalizedSession): SeedCompilation {
     let session: NormalizedSession
     try {
-      // Full trajectory intentionally accepts only the lifecycle-bearing v2
-      // normalization. v1 and malformed brackets/evidence are never guessed.
+      // Codex normalization remains lifecycle-bearing v2; the output is
+      // independently validated against DSH's current Session Format v4.
       session = NormalizedSessionSchema.parse(rawSession)
     } catch (error) {
       throw new HandoffError({
@@ -560,7 +553,14 @@ export class FullTrajectorySeedCompiler {
             markSurface(turnNumber)
             break
           }
-          emit('tool/result', time, asJson({ turn: turnNumber, step: stepNumber, message: makeToolResultMessage(messageId('tool-result', eventBody.source.locator + eventBody.id, item.index), mappedCallId, eventBody.content, eventBody.failed === true) }), 'append', [callSeq])
+          emit('tool/result', time, makeToolResultMessage(
+            messageId('tool-result', eventBody.source.locator + eventBody.id, item.index),
+            mappedCallId,
+            eventBody.content,
+            eventBody.failed === true,
+            turnNumber,
+            stepNumber,
+          ), 'append', [callSeq])
           markSurface(turnNumber)
           break
         }
@@ -597,7 +597,7 @@ export class FullTrajectorySeedCompiler {
   }
 }
 
-/** Compile a Smart kickoff context into one balanced, inert user turn. */
+/** Compile a Smart kickoff context into one balanced, inert v4 user turn. */
 export class SmartSeedCompiler {
   private readonly hash: DeterministicHash
 

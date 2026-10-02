@@ -11,7 +11,22 @@ import {
   sha256Hex,
   type DshGatewayRuntime,
 } from '../../src/dsh/index.js'
-import { MINIMAL_DSH_SEED } from '../fixtures/dsh/minimal-seed.js'
+
+const MINIMAL_DSH_SEED = [
+  { type: 'turn/start', seq: 0, time: 1, data: { turn: 1 } },
+  { type: 'step/start', seq: 1, time: 1, data: { turn: 1, step: 1 } },
+  {
+    type: 'user/message', seq: 2, time: 1,
+    data: {
+      id: 'fixture-user', role: 'user',
+      content: [{ type: 'text', text: 'Imported fixture context.' }],
+      source: { kind: 'plugin:dsh-codex-handoff', sourceAgent: 'codex', sourceSessionId: 'source-session-1', rolloutRevisionId: 'rollout-1', fingerprint: 'fingerprint-123456', mode: 'full', compilerSchema: '1.0.0', form: 'notice', summary: 'Imported read-only Codex history; historical tools were not executed.' },
+    },
+    surfaceOp: 'append',
+  },
+  { type: 'step/end', seq: 3, time: 1, data: { turn: 1, step: 1 } },
+  { type: 'turn/end', seq: 4, time: 1, data: { turn: 1, reason: { kind: 'completed' } } },
+] as const
 
 function prepared(mode: 'smart' | 'full' = 'full') {
   const source = {
@@ -40,8 +55,7 @@ function preparedWithProvenance(mode: 'smart' | 'full') {
   const source = { ...base.source, sessionId: sourceSessionId, rolloutRevisionId }
   const pluginSource = mode === 'full'
     ? {
-        kind: 'plugin' as const,
-        plugin: 'dsh-codex-handoff' as const,
+        kind: 'plugin:dsh-codex-handoff' as const,
         sourceAgent: 'codex' as const,
         sourceSessionId,
         rolloutRevisionId,
@@ -52,8 +66,7 @@ function preparedWithProvenance(mode: 'smart' | 'full') {
         summary: 'Imported read-only Codex history; historical tools were not executed.',
       }
     : {
-        kind: 'plugin' as const,
-        plugin: 'dsh-codex-handoff' as const,
+        kind: 'plugin:dsh-codex-handoff' as const,
         sourceAgent: 'codex' as const,
         sourceSessionId,
         rolloutRevisionId,
@@ -105,13 +118,13 @@ function runtime(
     await candidate.setup?.({})
     const pluginSource = sourceMode === 'smart'
       ? {
-          kind: 'plugin', plugin: 'dsh-codex-handoff', sourceAgent: 'codex',
+          kind: 'plugin:dsh-codex-handoff', sourceAgent: 'codex',
           sourceSessionId: sourceIdentity.sessionId, rolloutRevisionId: sourceIdentity.rolloutRevisionId,
           fingerprint: sourceIdentity.fingerprint, mode: sourceMode, compilerSchema: '1.0.0',
           form: 'snapshot', sections: [{ name: 'Objective', text: 'Continue the imported task.' }],
         }
       : {
-          kind: 'plugin', plugin: 'dsh-codex-handoff', sourceAgent: 'codex',
+          kind: 'plugin:dsh-codex-handoff', sourceAgent: 'codex',
           sourceSessionId: sourceIdentity.sessionId, rolloutRevisionId: sourceIdentity.rolloutRevisionId,
           fingerprint: sourceIdentity.fingerprint, mode: sourceMode, compilerSchema: '1.0.0',
           form: 'notice', summary: 'Imported read-only Codex history; historical tools were not executed.',
@@ -119,6 +132,7 @@ function runtime(
     const session = {
       header: {
         id: candidate.sessionId,
+        version: 4,
         cwd: candidate.meta.cwd,
         isSeeded: false,
         ...(candidate.meta.agentPreset === undefined ? {} : { agentPreset: candidate.meta.agentPreset }),
@@ -139,7 +153,22 @@ function runtime(
   const base = {
     agents: { create },
     agentDefaultModel: { currentSelection: () => ({ provider: 'mock', model: 'mock' }) },
-    sessionQuery: { inspect: async (id: string) => sessions.get(id) },
+    sessionQuery: {
+      observeSession: async (id: string, _options?: { readonly signal?: AbortSignal; readonly projectionMode?: 'all' | 'none' }) => {
+        const session = sessions.get(id) as { header: Record<string, unknown>; snapshotEvents(): readonly unknown[] } | undefined
+        if (session === undefined) throw Object.assign(new Error('session not found'), { code: 'SESSION_QUERY_SESSION_NOT_FOUND' })
+        const events = session.snapshotEvents()
+        return {
+          header: session.header,
+          events,
+          cursor: events.length,
+          revision: 'fixture-revision',
+          inheritedEventCount: 0,
+          source: 'live' as const,
+          [Symbol.dispose]: () => undefined,
+        }
+      },
+    },
     sessionPersistence: {},
     workspaceRegistry: {
       resolveByPath: async () => undefined,
@@ -175,41 +204,37 @@ describe('DshSessionGateway', () => {
     expect(host.compatibility()).toMatchObject({ compatible: true })
   })
 
-  it('enumerates SessionQuery before a throwing readSession shim', async () => {
+  it('uses one disposable v4 SessionQuery observation for destination inspection', async () => {
     const fake = runtime()
     const request = prepared()
     const index = new MemoryImportIndex()
-    const filterSessions = vi.fn(async () => [...fake.sessions.keys()].map(id => ({ id })))
-    const readSession = vi.fn(async (id: string) => {
-      if (!fake.sessions.has(id)) throw new Error('readSession absent shim')
-      return fake.sessions.get(id)
+    const dispose = vi.fn()
+    const observeSession = vi.fn(async (id: string, options?: { readonly signal?: AbortSignal; readonly projectionMode?: 'all' | 'none' }) => {
+      const observation = await fake.base.sessionQuery.observeSession(id, options)
+      return { ...observation, [Symbol.dispose]: dispose }
     })
     const gateway = new DshSessionGateway({
       ...fake.base,
-      sessionQuery: { filterSessions, readSession },
+      sessionQuery: { observeSession },
     }, { index })
     await expect(gateway.create(request, new AbortController().signal)).resolves.toMatchObject({ state: 'created' })
-    expect(filterSessions).toHaveBeenCalled()
+    expect(observeSession).toHaveBeenCalledWith(request.identity.destinationSessionId, expect.objectContaining({ projectionMode: 'none' }))
 
     const restarted = new DshSessionGateway({
       ...fake.base,
-      sessionQuery: { filterSessions, readSession },
+      sessionQuery: { observeSession },
     }, { index })
-    // The new gateway has no live handle; a found id must expand through
-    // readSession, while an absent id is proven absent without calling it.
-    const emptyFilter = vi.fn(async () => [])
     const absent = new DshSessionGateway({
       ...fake.base,
-      sessionQuery: { filterSessions: emptyFilter, readSession: vi.fn(async () => { throw new Error('must not read absent') }) },
+      sessionQuery: { observeSession: async () => { throw Object.assign(new Error('session not found'), { code: 'SESSION_QUERY_SESSION_NOT_FOUND' }) } },
     }, { index: new MemoryImportIndex() })
-    expect(await absent.find(request.identity, new AbortController().signal)).toBeUndefined()
     expect(await restarted.find(request.identity, new AbortController().signal)).toBe(request.identity.destinationSessionId)
-    expect(readSession).toHaveBeenCalledWith(request.identity.destinationSessionId)
+    expect(dispose).toHaveBeenCalled()
+    expect(await absent.find(request.identity, new AbortController().signal)).toBeUndefined()
     const uncertain = new DshSessionGateway({
       ...fake.base,
       sessionQuery: {
-        filterSessions: async () => [{ id: request.identity.destinationSessionId }],
-        readSession: async () => { throw new Error('read failure') },
+        observeSession: async () => { throw new Error('observation failed') },
       },
     }, { index })
     expect(await uncertain.find(request.identity, new AbortController().signal)).toBeUndefined()
@@ -374,7 +399,7 @@ describe('DshSessionGateway', () => {
     const fingerprintRecord = vi.fn(async () => 'changed-after-commit')
     const restarted = new DshSessionGateway({
       ...fake.base,
-      sessionQuery: { inspect },
+      sessionQuery: { observeSession: inspect },
     }, { index, fingerprintRecord })
     await expect(restarted.recover(new AbortController().signal)).resolves.toMatchObject([{ state: 'created' }])
     expect(inspect).not.toHaveBeenCalled()
@@ -393,7 +418,7 @@ describe('DshSessionGateway', () => {
     await expect(new DshSessionGateway(first.base, { index }).create(request, new AbortController().signal)).resolves.toMatchObject({ state: 'created_unattached' })
     const restarted = new DshSessionGateway({
       ...first.base,
-      sessionQuery: { inspect: async () => { throw new Error('query unavailable') } },
+      sessionQuery: { observeSession: async () => { throw new Error('query unavailable') } },
     }, { index, cwdIdentity: async () => ({ device: 'test-device', inode: 'test-inode' }) })
     await expect(restarted.recover(new AbortController().signal)).resolves.toMatchObject([{ state: 'created_unattached' }])
     expect((await index.get(request.identity.key))?.state).toBe('created_unattached')
@@ -733,13 +758,13 @@ describe('DshSessionGateway', () => {
     let inspectCount = 0
     let releaseInitialInspect: () => void = () => undefined
     const initialInspect = new Promise<void>(resolve => { releaseInitialInspect = resolve })
-    const inspect = fake.base.sessionQuery.inspect
+    const observeSession = fake.base.sessionQuery.observeSession
     fake.base.sessionQuery = {
-      inspect: async (id: string) => {
+      observeSession: async (id: string, options?: { readonly signal?: AbortSignal; readonly projectionMode?: 'all' | 'none' }) => {
         inspectCount += 1
         if (inspectCount === 2) releaseInitialInspect()
         await initialInspect
-        return await inspect(id)
+        return await observeSession(id, options)
       },
     }
     const request = prepared()
@@ -1128,12 +1153,12 @@ describe('DshSessionGateway', () => {
     expect(await index.get(request.identity.key)).toMatchObject({ state: 'orphaned', failure: { phase: 'destination-verify' } })
 
     fake.sessions.set(request.identity.destinationSessionId, {
-      header: { id: request.identity.destinationSessionId, cwd: request.cwd, isSeeded: false },
+      header: { id: request.identity.destinationSessionId, version: 4, cwd: request.cwd, isSeeded: false },
       snapshotEvents: () => [{
         type: 'user/message',
         data: {
           source: {
-            kind: 'plugin', plugin: 'dsh-codex-handoff', sourceAgent: 'codex',
+            kind: 'plugin:dsh-codex-handoff', sourceAgent: 'codex',
             sourceSessionId: '[REDACTED]', rolloutRevisionId: '[REDACTED]',
             fingerprint: request.sourceFingerprint, mode: 'smart', compilerSchema: '1.0.0',
             form: 'snapshot', sections: [{ name: 'Objective', text: 'Continue the imported task.' }],

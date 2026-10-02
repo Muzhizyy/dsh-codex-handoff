@@ -814,6 +814,89 @@ export const JsonValueSchema: z.ZodType<JsonValue> = z.lazy(() =>
   ]),
 )
 
+/** A DSH Session Format v4 event accepted as a newly-created Session seed. */
+export const DshSessionFormatV4SeedEventSchema = z
+  .object({
+    type: boundedText(128).min(1),
+    seq: nonNegativeInteger.max(HARD_LIMITS.records),
+    time: nonNegativeInteger,
+    data: JsonValueSchema,
+    surfaceOp: z.literal('append').optional(),
+    sourceEventSeqs: z.array(nonNegativeInteger.max(HARD_LIMITS.records)).max(HARD_LIMITS.seedEvents).optional(),
+    ignorable: z.literal(true).optional(),
+  })
+  .strict()
+  .superRefine((event, ctx) => {
+    if (event.type === 'request/header' || event.type === 'request/context' || event.type === 'session/end-seed') {
+      ctx.addIssue({ code: 'custom', path: ['type'], message: 'constructor/live-only events cannot be supplied in a DSH Session seed' })
+    }
+    const surfaceEvent = event.type === 'user/message' || event.type === 'assistant/message' || event.type === 'tool/result'
+    if (surfaceEvent && event.surfaceOp !== 'append') {
+      ctx.addIssue({ code: 'custom', path: ['surfaceOp'], message: 'v4 surface events require surfaceOp=append in a new Session seed' })
+    }
+    if (!surfaceEvent && event.surfaceOp !== undefined) {
+      ctx.addIssue({ code: 'custom', path: ['surfaceOp'], message: 'non-surface events cannot carry a surface operation in a new Session seed' })
+    }
+
+    const data = event.data !== null && typeof event.data === 'object' && !Array.isArray(event.data)
+      ? event.data as Record<string, unknown>
+      : undefined
+    const message = event.type === 'user/message' ? data
+      : event.type === 'assistant/message' || event.type === 'tool/result'
+        ? data?.message !== null && typeof data?.message === 'object' && !Array.isArray(data.message)
+          ? data.message as Record<string, unknown>
+          : undefined
+        : undefined
+    if (message !== undefined) {
+      const expectedRole = event.type === 'user/message' ? 'user' : event.type === 'tool/result' ? 'tool' : 'assistant'
+      const messagePath = ['data', ...(event.type === 'user/message' ? [] : ['message'])]
+      if (typeof message.id !== 'string' || message.id.length === 0) {
+        ctx.addIssue({ code: 'custom', path: [...messagePath, 'id'], message: 'v4 messages require a non-empty id' })
+      }
+      if (message.role !== expectedRole) {
+        ctx.addIssue({ code: 'custom', path: [...messagePath, 'role'], message: `${event.type} requires a ${expectedRole} message` })
+      }
+      const source = message.source !== null && typeof message.source === 'object' && !Array.isArray(message.source)
+        ? message.source as Record<string, unknown>
+        : undefined
+      if (source === undefined || typeof source.kind !== 'string' || source.kind.length === 0 || source.kind === 'plugin') {
+        ctx.addIssue({ code: 'custom', path: [...messagePath, 'source'], message: 'v4 messages require a producer-owned source kind' })
+      } else if (event.type === 'assistant/message') {
+        if (source.kind !== 'model' || typeof source.provider !== 'string' || source.provider.length === 0
+          || typeof source.model !== 'string' || source.model.length === 0) {
+          ctx.addIssue({ code: 'custom', path: [...messagePath, 'source'], message: 'v4 assistant messages require a model source with provider and model' })
+        }
+      } else if (event.type === 'tool/result') {
+        if (source.kind !== 'tool' || typeof source.callId !== 'string' || source.callId.length === 0) {
+          ctx.addIssue({ code: 'custom', path: [...messagePath, 'source'], message: 'v4 tool results require a tool source with callId' })
+        }
+        if (typeof source.callId === 'string' && message.toolCallId !== source.callId) {
+          ctx.addIssue({ code: 'custom', path: [...messagePath, 'toolCallId'], message: 'v4 tool result ids must match their tool source' })
+        }
+      }
+      if (!Array.isArray(message.content)) {
+        ctx.addIssue({ code: 'custom', path: [...messagePath, 'content'], message: 'v4 messages require a content array' })
+      }
+    }
+    if (event.type === 'assistant/message' && (!Number.isSafeInteger(data?.turn) || (data?.turn as number) < 1
+      || !Number.isSafeInteger(data?.step) || (data?.step as number) < 1 || !Array.isArray(data?.stream))) {
+      ctx.addIssue({ code: 'custom', path: ['data'], message: 'v4 assistant/message requires turn, step, stream, and message fields' })
+    }
+    if (event.type === 'assistant/message' && event.sourceEventSeqs !== undefined) {
+      ctx.addIssue({ code: 'custom', path: ['sourceEventSeqs'], message: 'v4 assistant messages embed their stream and cannot cite source events' })
+    }
+    if (event.type === 'tool/result' && (!Number.isSafeInteger(data?.turn) || (data?.turn as number) < 1
+      || !Number.isSafeInteger(data?.step) || (data?.step as number) < 1)) {
+      ctx.addIssue({ code: 'custom', path: ['data'], message: 'v4 tool/result requires turn and step' })
+    }
+    if (event.sourceEventSeqs !== undefined
+      && (event.sourceEventSeqs.length === 0
+        || new Set(event.sourceEventSeqs).size !== event.sourceEventSeqs.length
+        || event.sourceEventSeqs.some(seq => seq >= event.seq))) {
+      ctx.addIssue({ code: 'custom', path: ['sourceEventSeqs'], message: 'v4 source event references must be unique prior event sequences' })
+    }
+  })
+
 const importRecoveryIntentSchema = z
   .object({
     source: ExternalSessionRefSchema,

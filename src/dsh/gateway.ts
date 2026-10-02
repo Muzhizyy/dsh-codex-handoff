@@ -16,9 +16,7 @@ import {
   type ImportRecoveryIntent,
   type JsonValue,
   type PreparedImport,
-  type PluginSource,
   HARD_LIMITS,
-  PluginSourceSchema,
   REDACTED,
   redactJson,
 } from '../shared/index.js'
@@ -58,15 +56,21 @@ export interface DshAgentPresetsService {
 
 /** Read-only query facade used to guard adoption of a destination session. */
 export interface DshSessionQueryService {
-  has?(sessionId: string): Promise<boolean> | boolean
-  exists?(sessionId: string): Promise<boolean> | boolean
-  get?(sessionId: string): Promise<unknown> | unknown
-  find?(sessionId: string): Promise<unknown> | unknown
-  inspect?(sessionId: string, signal?: AbortSignal): Promise<unknown> | unknown
-  readSession?(sessionId: string): Promise<unknown> | unknown
-  filterSessions?(filters: readonly unknown[], signal?: AbortSignal): Promise<readonly unknown[]>
-  listSessions?(signal?: AbortSignal): Promise<readonly unknown[]>
-  list?(...args: readonly unknown[]): Promise<readonly unknown[]> | readonly unknown[]
+  observeSession(sessionId: string, options?: {
+    readonly signal?: AbortSignal
+    readonly projectionMode?: 'all' | 'none'
+  }): Promise<DshSessionObservation>
+}
+
+/** Structural subset of the v0.2 immutable SessionQuery observation lease. */
+export interface DshSessionObservation {
+  readonly source?: 'live' | 'prepared'
+  readonly header: Record<string, unknown>
+  readonly cursor: number
+  readonly revision?: unknown
+  readonly inheritedEventCount?: number
+  readonly events: readonly unknown[]
+  [Symbol.dispose](): void
 }
 
 /** Host workspace facade. Workspace entities expose attachSession themselves. */
@@ -411,7 +415,7 @@ function asJson<T>(value: T): JsonValue {
  * Re-redact a prepared seed at the DSH boundary without losing the opaque
  * identity carried by compiler-created plugin provenance.  The exception is
  * intentionally narrow: the event must be a user/message, its source must
- * pass the strict PluginSource schema, and its identity must match this
+ * carry the v4 producer-owned plugin source, and its identity must match this
  * already-validated import request. Arbitrary JSON keys never bypass redactJson.
  */
 function redactPreparedSeedEvent(event: JsonValue, request: PreparedImport): JsonValue {
@@ -421,9 +425,8 @@ function redactPreparedSeedEvent(event: JsonValue, request: PreparedImport): Jso
   if (rawEvent?.type !== 'user/message') return redacted
   const rawData = objectValue(rawEvent.data)
   if (rawData === undefined) return redacted
-  const parsedSource = PluginSourceSchema.safeParse(rawData.source)
-  if (!parsedSource.success) return redacted
-  const source = parsedSource.data as PluginSource
+  const source = objectValue(rawData.source)
+  if (source === undefined || source.kind !== 'plugin:dsh-codex-handoff') return redacted
   const expectedForm = request.mode === 'full' ? 'notice' : 'snapshot'
   if (
     source.form !== expectedForm
@@ -443,6 +446,7 @@ function redactPreparedSeedEvent(event: JsonValue, request: PreparedImport): Jso
       ...redactedData,
       source: {
         ...redactedSource,
+        kind: 'plugin:dsh-codex-handoff',
         sourceSessionId: source.sourceSessionId,
         rolloutRevisionId: source.rolloutRevisionId,
       },
@@ -477,17 +481,7 @@ function requiredCapabilities(runtime: DshGatewayRuntime): CompatibilityView['re
   return {
     agents: getCapability(runtime.agents, 'create'),
     agentDefaultModel: getCapability(runtime.agentDefaultModel, 'currentSelection'),
-    sessionQuery: runtime.sessionQuery !== undefined && (
-      getCapability(runtime.sessionQuery, 'has')
-      || getCapability(runtime.sessionQuery, 'exists')
-      || getCapability(runtime.sessionQuery, 'get')
-      || getCapability(runtime.sessionQuery, 'find')
-      || getCapability(runtime.sessionQuery, 'inspect')
-      || getCapability(runtime.sessionQuery, 'readSession')
-      || getCapability(runtime.sessionQuery, 'filterSessions')
-      || getCapability(runtime.sessionQuery, 'listSessions')
-      || getCapability(runtime.sessionQuery, 'list')
-    ),
+    sessionQuery: getCapability(runtime.sessionQuery, 'observeSession'),
     sessionPersistence: runtime.sessionPersistence !== undefined,
     workspaceRegistry: runtime.workspaceRegistry !== undefined && (
       getCapability(runtime.workspaceRegistry, 'resolveByPath')
@@ -615,13 +609,13 @@ function verifiedFromObservation(value: unknown, expectation: DestinationExpecta
   if (direct?.status === 'unknown') return destinationUnknown(now, 'query-failed')
   if (direct?.status === 'conflict') return destinationConflict(now, direct.reason === 'cwd-mismatch' ? 'cwd-mismatch' : 'source-mismatch', typeof direct.observedCwd === 'string' ? direct.observedCwd : undefined)
   const observation = observationOf(value)
-  if (observation === undefined) return destinationUnknown(now, 'metadata-missing')
+  if (observation === undefined || observation.header?.version !== 4) return destinationUnknown(now, 'metadata-missing')
   const cwd = observation.header?.cwd
   if (typeof cwd !== 'string') return destinationUnknown(now, 'metadata-missing')
   if (cwd !== expectation.cwd) return destinationConflict(now, 'cwd-mismatch', cwd)
   if (observation.events === undefined) return destinationUnknown(now, 'metadata-missing')
   const pluginSources = observation.events.map(sourceOfEvent).filter((source): source is Record<string, unknown> => source !== undefined)
-    .filter(source => source.kind === 'plugin' && source.plugin === 'dsh-codex-handoff' && (
+    .filter(source => source.kind === 'plugin:dsh-codex-handoff' && (
       source.form === 'notice' && typeof source.summary === 'string' && source.summary.length > 0
       || source.form === 'snapshot' && Array.isArray(source.sections)
     ))
@@ -711,12 +705,12 @@ export class DshSessionGateway implements DshSessionGatewayPort {
     for (const [name, present] of Object.entries(required)) {
       if (!present) diagnostics.push(diagnostic('DSH_INCOMPATIBLE', `Required DSH capability is unavailable: ${name}.`, 'error'))
     }
-    if (this.runtime.observedSessionFormat !== undefined && this.runtime.observedSessionFormat !== 2) {
-      diagnostics.push(diagnostic('DSH_INCOMPATIBLE', 'The observed DSH session format is not the supported v2 format.', 'error'))
+    if (this.runtime.observedSessionFormat !== undefined && this.runtime.observedSessionFormat !== 4) {
+      diagnostics.push(diagnostic('DSH_INCOMPATIBLE', 'The observed DSH session format is not the supported v4 format.', 'error'))
     }
     const view = {
       compatible: Object.values(required).every(Boolean)
-        && (this.runtime.observedSessionFormat === undefined || this.runtime.observedSessionFormat === 2),
+        && (this.runtime.observedSessionFormat === undefined || this.runtime.observedSessionFormat === 4),
       ...(this.runtime.dshVersion === undefined ? {} : { dshVersion: this.runtime.dshVersion }),
       ...(this.runtime.observedSessionFormat === undefined ? {} : { observedSessionFormat: this.runtime.observedSessionFormat }),
       required,
@@ -1268,7 +1262,7 @@ export class DshSessionGateway implements DshSessionGatewayPort {
     if (!view.compatible) {
       throw new HandoffError({
         code: 'DSH_INCOMPATIBLE',
-        message: 'The installed DSH host does not expose the required v2 session capabilities.',
+        message: 'The installed DSH host does not expose the required v4 session capabilities.',
         recoverable: false,
       })
     }
@@ -1351,45 +1345,30 @@ export class DshSessionGateway implements DshSessionGatewayPort {
   private async inspectDestination(sessionId: string, expectation: DestinationExpectation, signal: AbortSignal): Promise<DestinationCheck> {
     abortIfNeeded(signal)
     const query = this.runtime.sessionQuery
-    if (query === undefined) return destinationUnknown(this.now, 'query-unavailable')
+    if (query === undefined || !isCallable(query.observeSession)) return destinationUnknown(this.now, 'query-unavailable')
+    let observation: DshSessionObservation | undefined
+    let result: DestinationCheck = destinationUnknown(this.now, 'metadata-missing')
+    let disposeFailed = false
     try {
-      let value: unknown
-      // The fixed DSH SessionQuery may expose a throwing readSession shim even
-      // when the destination is absent. Enumerate by id first; an empty
-      // filter/list is authoritative absence, while a hit is then expanded by
-      // readSession for provenance/event verification.
-      const match = (rows: readonly unknown[]): unknown => rows.find(row => {
-        if (typeof row === 'string') return row === sessionId
-        const record = objectValue(row)
-        const header = record === undefined ? undefined : objectValue(record.header)
-        return header?.id === sessionId || record?.id === sessionId
-      })
-      if (isCallable(query.filterSessions)) {
-        const rows = await query.filterSessions([{ kind: 'id', values: [sessionId] }], signal)
-        const found = match(rows)
-        if (found === undefined) return destinationAbsent(this.now)
-        value = isCallable(query.readSession) ? await query.readSession(sessionId) : found
-      } else if (isCallable(query.listSessions)) {
-        const rows = await query.listSessions(signal)
-        const found = match(rows)
-        if (found === undefined) return destinationAbsent(this.now)
-        value = isCallable(query.readSession) ? await query.readSession(sessionId) : found
-      } else if (isCallable(query.list)) {
-        const rows = await query.list()
-        const found = match(rows)
-        if (found === undefined) return destinationAbsent(this.now)
-        value = isCallable(query.readSession) ? await query.readSession(sessionId) : found
-      } else if (isCallable(query.inspect)) value = await query.inspect(sessionId, signal)
-      else if (isCallable(query.readSession)) value = await query.readSession(sessionId)
-      else if (isCallable(query.get)) value = await query.get(sessionId)
-      else if (isCallable(query.find)) value = await query.find(sessionId)
-      else if (isCallable(query.has)) value = await query.has(sessionId)
-      else if (isCallable(query.exists)) value = await query.exists(sessionId)
-      else return destinationUnknown(this.now, 'query-unavailable')
-      return verifiedFromObservation(value, expectation, this.now, 'session-query')
-    } catch {
-      return destinationUnknown(this.now, 'query-failed')
+      observation = await query.observeSession(sessionId, { signal, projectionMode: 'none' })
+      result = observation.header.version === 4
+        ? verifiedFromObservation(observation, expectation, this.now, 'session-query')
+        : destinationUnknown(this.now, 'metadata-missing')
+    } catch (error) {
+      if (signal.aborted) abortIfNeeded(signal)
+      result = objectValue(error)?.code === 'SESSION_QUERY_SESSION_NOT_FOUND'
+        ? destinationAbsent(this.now)
+        : destinationUnknown(this.now, 'query-failed')
+    } finally {
+      if (observation !== undefined) {
+        try {
+          observation[Symbol.dispose]()
+        } catch {
+          disposeFailed = true
+        }
+      }
     }
+    return disposeFailed ? destinationUnknown(this.now, 'inspect-failed') : result
   }
 
   private async indexGet(key: string, signal: AbortSignal): Promise<ImportRecordRead | undefined> {
