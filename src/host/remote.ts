@@ -12,6 +12,10 @@ import {
   SessionPageSchema,
   SessionPreviewSchema,
   SmartPreviewSchema,
+  ReturnPreviewRequestSchema,
+  ReturnPreviewResponseSchema,
+  ReturnSyncRequestSchema,
+  ReturnSyncResponseSchema,
   TokenBudgetSchema,
   type CompatibilityView,
   type CreateOutcome,
@@ -24,6 +28,10 @@ import {
   type NormalizedSession,
   type PreparedImport,
   type ExternalSessionRef,
+  type ReturnPreviewRequest,
+  type ReturnPreviewResponse,
+  type ReturnSyncRequest,
+  type ReturnSyncResponse,
   redactDiagnostic,
   redactSessionPage,
   redactSessionPreview,
@@ -36,15 +44,18 @@ import type { CodexHandoffRemote, RepositoryInspector, SessionSource } from '../
 import type { SmartHandoffEngine } from '../handoff/engine.js'
 import { compileFullSeed, compileSmartSeed } from '../dsh/seed.js'
 import { computeImportIdentity, type DshSessionGateway } from '../dsh/gateway.js'
+import type { ReturnSyncService } from './return-sync.js'
 
 /** The only methods exposed by the Host namespace. Keep this list in sync with
- * the generated remote/typert artifacts; the build gate asserts all five. */
+ * the generated remote/typert artifacts; the build gate asserts all seven. */
 export const HOST_REMOTE_METHODS = Object.freeze([
   'compatibility',
   'discover',
   'preview',
   'analyze',
   'create',
+  'returnPreview',
+  'returnSync',
 ] as const)
 
 export interface CodexHandoffHostRemoteOptions {
@@ -52,6 +63,7 @@ export interface CodexHandoffHostRemoteOptions {
   readonly repository: RepositoryInspector
   readonly engine: SmartHandoffEngine
   readonly gateway: DshSessionGateway
+  readonly returnSync?: Pick<ReturnSyncService, 'returnPreview' | 'returnSync'>
   readonly timeoutMs?: number
 }
 
@@ -347,6 +359,30 @@ export class CodexHandoffRemoteService implements CodexHandoffRemote {
       }
       const prepared: PreparedImport = preparedBase
       return CreateOutcomeSchema.parse(await this.options.gateway.create(prepared, operationSignal))
+    }, signal)
+  }
+
+  returnPreview(req: ReturnPreviewRequest, signal?: AbortSignal): Promise<ReturnPreviewResponse> {
+    return this.run('returnPreview', async operationSignal => {
+      const service = this.options.returnSync
+      if (service === undefined) throw new HandoffError({ code: 'RETURN_NOT_SUPPORTED', message: 'Return-context synchronization is unavailable in this Host composition.', recoverable: false })
+      let request: ReturnPreviewRequest
+      try { request = ReturnPreviewRequestSchema.parse(req) } catch (error) {
+        throw asValidationError('The return preview request is invalid.', error)
+      }
+      return ReturnPreviewResponseSchema.parse(await service.returnPreview(request, operationSignal))
+    }, signal)
+  }
+
+  returnSync(req: ReturnSyncRequest, signal?: AbortSignal): Promise<ReturnSyncResponse> {
+    return this.run('returnSync', async operationSignal => {
+      const service = this.options.returnSync
+      if (service === undefined) throw new HandoffError({ code: 'RETURN_NOT_SUPPORTED', message: 'Return-context synchronization is unavailable in this Host composition.', recoverable: false })
+      let request: ReturnSyncRequest
+      try { request = ReturnSyncRequestSchema.parse(req) } catch (error) {
+        throw asValidationError('The return sync request is invalid.', error)
+      }
+      return ReturnSyncResponseSchema.parse(await service.returnSync(request, operationSignal))
     }, signal)
   }
 

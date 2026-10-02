@@ -43,7 +43,8 @@ describe('Codex handoff React slot components', () => {
     const model = new HandoffClientModel(remote, new FakeSessions())
     const { act, render, screen, waitFor } = rtl!
     render(React.createElement(HandoffOverlay, { model, titleKey: 'title', onKey: key => model.keyboard(key) }))
-    const opening = model.open()
+    let opening!: Promise<void>
+    await act(async () => { opening = model.open() })
     await waitFor(() => expect(screen.getByText(en.compatibility)).toBeTruthy())
     expect(screen.getByRole('dialog').getAttribute('aria-busy')).toBe('true')
     await act(async () => { release(); await opening })
@@ -149,10 +150,13 @@ describe('Codex handoff React slot components', () => {
     await act(async () => { await model.open() })
     await waitFor(() => expect(screen.getByText('Second source')).toBeTruthy())
     const first = screen.getByRole('button', { name: /A source session/ })
-    first.focus()
-    fireEvent.keyDown(first, { key: 'ArrowDown' })
     const second = screen.getByRole('button', { name: /Second source/ })
-    fireEvent.keyDown(second, { key: 'Enter' })
+    await act(async () => {
+      first.focus()
+      fireEvent.keyDown(first, { key: 'ArrowDown' })
+      second.focus()
+      fireEvent.keyDown(second, { key: 'Enter' })
+    })
     await waitFor(() => expect(model.getState().selected?.sessionId).toBe('session-2'))
     expect(screen.getByLabelText(en.focusPreview)).toBeTruthy()
   })

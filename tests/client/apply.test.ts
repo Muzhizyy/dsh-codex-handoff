@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { apply } from '../../src/client/apply.js'
+import { ReturnHeaderAction } from '../../src/client/return-components.js'
 import { localeParity, NS } from '../../src/client/locales.js'
 import { adaptCodexHandoffRemote, codexHandoffRemote } from '../../src/client/remote.js'
 import type { CodexHandoffRemote } from '../../src/shared/ports.js'
@@ -17,6 +18,8 @@ class MountingRemote extends FakeRemote {
     preview(request: Parameters<CodexHandoffRemote['preview']>[0], signal?: AbortSignal): Promise<unknown>
     analyze(request: Parameters<CodexHandoffRemote['analyze']>[0], signal?: AbortSignal): Promise<unknown>
     create(request: Parameters<CodexHandoffRemote['create']>[0], signal?: AbortSignal): Promise<unknown>
+    returnPreview(request: Parameters<CodexHandoffRemote['returnPreview']>[0], signal?: AbortSignal): Promise<unknown>
+    returnSync(request: Parameters<CodexHandoffRemote['returnSync']>[0], signal?: AbortSignal): Promise<unknown>
   } | undefined
 
   get codexHandoff(): CodexHandoffRemote {
@@ -36,7 +39,7 @@ class MountingRemote extends FakeRemote {
       const method = (descriptor as { readonly method?: unknown }).method
       return typeof method === 'string' ? [method] : []
     }))
-    const required = ['compatibility', 'discover', 'preview', 'analyze', 'create']
+    const required = ['compatibility', 'discover', 'preview', 'analyze', 'create', 'returnPreview', 'returnSync']
     if (contribution.package !== 'dsh-codex-handoff' || required.some(method => !methods.has(method))) {
       throw new Error('DSH_CLIENT_REMOTE_DESCRIPTOR_INVALID')
     }
@@ -50,6 +53,8 @@ class MountingRemote extends FakeRemote {
       preview: (request, signal) => envelope(() => this.preview(request, signal)),
       analyze: (request, signal) => envelope(() => this.analyze(request, signal)),
       create: (request, signal) => envelope(() => this.create(request, signal)),
+      returnPreview: (request, signal) => envelope(() => this.returnPreview(request, signal)),
+      returnSync: (request, signal) => envelope(() => this.returnSync(request, signal)),
     }
     return async () => { this.mountDisposeCalls += 1; this.mountedNamespace = undefined }
   }
@@ -117,9 +122,9 @@ describe('official-shaped client slot adapter', () => {
 
     await apply(context)
 
-    expect(codexHandoffRemote.descriptors).toHaveLength(5)
+    expect(codexHandoffRemote.descriptors).toHaveLength(7)
     expect(fakeRemote.mounts).toEqual([codexHandoffRemote])
-    expect(injections).toEqual(['sidebar.footer.action', 'shell.overlay'])
+    expect(injections).toEqual(['sidebar.footer.action', 'shell.overlay', 'conversation.session.header.utilities'])
 
     const action = registrations.find(entry => entry.options.id === 'codex-handoff-action')
     expect(action).toBeDefined()
@@ -128,6 +133,16 @@ describe('official-shaped client slot adapter', () => {
     await props.onActivate()
     expect(fakeRemote.compatibilityCalls).toBe(1)
     expect(fakeRemote.discoverRequests).toHaveLength(1)
+
+    const returnAction = registrations.find(entry => entry.options.id === 'codex-handoff-return')
+    expect(returnAction).toBeDefined()
+    if (returnAction === undefined) throw new Error('return action registration missing')
+    expect(returnAction.component).toBe(ReturnHeaderAction)
+    expect(returnAction.options.name).toBe('conversation.session.header.utilities')
+    const returnProps = (returnAction.options.inject as () => { model: { open(sessionId: string): Promise<void> } })()
+    await returnProps.model.open('dsh-session-from-header')
+    expect(fakeRemote.returnPreviewRequests).toEqual([{ dshSessionId: 'dsh-session-from-header' }])
+    expect(fakeRemote.returnSyncRequests).toEqual([])
   })
 
   it('turns an official RemoteResult failure into the model-facing rejection', async () => {
@@ -138,6 +153,8 @@ describe('official-shaped client slot adapter', () => {
       preview: async () => ({ ok: false, error }),
       analyze: async () => ({ ok: false, error }),
       create: async () => ({ ok: false, error }),
+      returnPreview: async () => ({ ok: false, error }),
+      returnSync: async () => ({ ok: false, error }),
     })
 
     await expect(adapted.compatibility()).rejects.toEqual(error)
@@ -240,7 +257,7 @@ describe('official-shaped client slot adapter', () => {
     expect(typeof returned).toBe('function')
     await (returned as () => Promise<void>)()
     await (returned as () => Promise<void>)()
-    expect(slotDisposals).toBe(2)
+    expect(slotDisposals).toBe(3)
     expect(remote.mountDisposeCalls).toBe(1)
   })
 
@@ -270,7 +287,7 @@ describe('official-shaped client slot adapter', () => {
     expect(typeof effectDisposer).toBe('function')
     await dispose()
     await dispose()
-    expect(slotDisposals).toBe(2)
+    expect(slotDisposals).toBe(3)
     expect(remote.mountDisposeCalls).toBe(1)
   })
 })

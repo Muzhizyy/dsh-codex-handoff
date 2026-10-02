@@ -71,6 +71,17 @@ export const ErrorCodeSchema = z.enum([
   'SESSION_NOT_VISIBLE',
   'CANCELLED',
   'INTERNAL',
+  'RETURN_NOT_SUPPORTED',
+  'RETURN_SOURCE_METADATA_MISSING',
+  'RETURN_PREVIEW_EXPIRED',
+  'RETURN_STALE',
+  'RETURN_PAYLOAD_TOO_LARGE',
+  'CODEX_APP_SERVER_UNAVAILABLE',
+  'CODEX_PROTOCOL_MISMATCH',
+  'CODEX_SOURCE_THREAD_NOT_FOUND',
+  'RETURN_RESULT_UNKNOWN',
+  'RECONCILE_INCONCLUSIVE',
+  'RETURN_STORAGE_FAILED',
 ])
 
 export const DiagnosticRecordSchema = z
@@ -1714,3 +1725,13 @@ export const RemoteErrorSchema = z
 
 export const DefaultParseLimitsSchema = ParseLimitsSchema
 export const DefaultParseLimits = ParseLimitsSchema.parse(DEFAULT_LIMITS)
+
+// Keep return DTO schemas available through the established shared-schema
+// surface while their focused definitions remain in return.ts.
+export {
+  ReturnDurableRecordSchema,
+  ReturnPreviewRequestSchema,
+  ReturnPreviewResponseSchema,
+  ReturnSyncRequestSchema,
+  ReturnSyncResponseSchema,
+} from './return.js'

@@ -7,6 +7,10 @@ import type {
   CreateRequest,
   DiscoverRequest,
   PreviewRequest,
+  ReturnPreviewRequest,
+  ReturnPreviewResponse,
+  ReturnSyncRequest,
+  ReturnSyncResponse,
   SessionPage,
   SessionPreview,
   SmartPreview,
@@ -55,6 +59,8 @@ interface GeneratedCodexHandoffRemote {
   preview(request: PreviewRequest, signal?: AbortSignal): Promise<unknown>
   analyze(request: AnalyzeRequest, signal?: AbortSignal): Promise<unknown>
   create(request: CreateRequest, signal?: AbortSignal): Promise<unknown>
+  returnPreview(request: ReturnPreviewRequest, signal?: AbortSignal): Promise<unknown>
+  returnSync(request: ReturnSyncRequest, signal?: AbortSignal): Promise<unknown>
 }
 
 /** Adapt the generated namespace without leaking its envelope into the model. */
@@ -66,5 +72,7 @@ export function adaptCodexHandoffRemote(remote: CodexHandoffRemote | GeneratedCo
     preview: (request, signal) => unwrap<SessionPreview>(generated.preview(request, signal)),
     analyze: (request, signal) => unwrap<SmartPreview>(generated.analyze(request, signal)),
     create: (request, signal) => unwrap<CreateOutcome>(generated.create(request, signal)),
+    returnPreview: (request, signal) => unwrap<ReturnPreviewResponse>(generated.returnPreview(request, signal)),
+    returnSync: (request, signal) => unwrap<ReturnSyncResponse>(generated.returnSync(request, signal)),
   }
 }

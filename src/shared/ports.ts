@@ -51,4 +51,6 @@ export interface CodexHandoffRemote {
   preview(req: import('./types.js').PreviewRequest, signal?: AbortSignal): Promise<SessionPreview>
   analyze(req: AnalyzeRequest, signal?: AbortSignal): Promise<SmartPreview>
   create(req: import('./types.js').CreateRequest, signal?: AbortSignal): Promise<CreateOutcome>
+  returnPreview(req: import('./return.js').ReturnPreviewRequest, signal?: AbortSignal): Promise<import('./return.js').ReturnPreviewResponse>
+  returnSync(req: import('./return.js').ReturnSyncRequest, signal?: AbortSignal): Promise<import('./return.js').ReturnSyncResponse>
 }

@@ -1,5 +1,7 @@
+import path from 'node:path'
+import { realpath } from 'node:fs/promises'
 import { CodexSessionSource } from '../codex/resolver.js'
-import type { CodexHomeOptions } from '../codex/home.js'
+import { resolveCodexHomePath, type CodexHomeOptions } from '../codex/home.js'
 import { GitRepositoryInspector } from '../repo/inspector.js'
 import type { RepositoryInspector, SessionSource } from '../shared/ports.js'
 import { DefaultParseLimits } from '../shared/schemas.js'
@@ -30,6 +32,11 @@ import {
 } from '../shared/index.js'
 import { HARD_LIMITS, utf8ByteLength } from '../shared/limits.js'
 import { compileFullSeed } from '../dsh/seed.js'
+import {
+  createStorageDomainReturnStore,
+  ReturnSyncService,
+  type ReturnStore,
+} from './return-sync.js'
 
 /** Official Host services required by the DSH composition root. */
 export const HOST_INJECT = Object.freeze([
@@ -55,6 +62,9 @@ export interface HostCompositionOptions {
   readonly repository?: RepositoryInspector
   readonly engine?: SmartHandoffEngine
   readonly index?: ImportIndex
+  readonly returnStore?: ReturnStore
+  /** Exact CODEX_HOME used by the source resolver and app-server. */
+  readonly codexHome?: string
   readonly gateway?: DshSessionGateway
   readonly timeoutMs?: number
   readonly now?: () => Date
@@ -68,6 +78,35 @@ export interface HostComposition {
   readonly engine: SmartHandoffEngine
   readonly runtime: DshGatewayRuntime
   readonly index: ImportIndex
+  readonly returnSync?: ReturnSyncService
+}
+
+/** Resolve the only Codex home authorized for return: the source root itself. */
+export function resolveCodexHomeForSource(source: SessionSource, configuredHome?: string): string | undefined {
+  const sourceHome = source instanceof CodexSessionSource ? source.resolver.roots.home : undefined
+  const configured = configuredHome === undefined ? undefined : resolveCodexHomePath({ codexHome: configuredHome, platform: process.platform })
+  if (sourceHome !== undefined && configured !== undefined) {
+    const api = process.platform === 'win32' ? path.win32 : path
+    const left = api.normalize(sourceHome)
+    const right = api.normalize(configured)
+    const same = process.platform === 'win32' ? left.toLowerCase() === right.toLowerCase() : left === right
+    if (!same) throw new HandoffError({ code: 'RETURN_NOT_SUPPORTED', message: 'Configured Codex home does not match the imported source root.', recoverable: false })
+  }
+  return sourceHome ?? configured
+}
+
+async function resolveCanonicalCodexHomeForSource(source: SessionSource, configuredHome?: string): Promise<string | undefined> {
+  const sourceHome = resolveCodexHomeForSource(source)
+  const configured = configuredHome === undefined ? undefined : resolveCodexHomePath({ codexHome: configuredHome, platform: process.platform })
+  if (sourceHome !== undefined && configured !== undefined) {
+    const api = process.platform === 'win32' ? path.win32 : path
+    const canonical = async (candidate: string): Promise<string> => await realpath(candidate).catch(() => api.resolve(candidate))
+    const left = api.normalize(await canonical(sourceHome))
+    const right = api.normalize(await canonical(configured))
+    const same = process.platform === 'win32' ? left.toLowerCase() === right.toLowerCase() : left === right
+    if (!same) throw new HandoffError({ code: 'RETURN_NOT_SUPPORTED', message: 'Configured Codex home does not match the imported source root.', recoverable: false })
+  }
+  return sourceHome ?? configured
 }
 
 /**
@@ -270,11 +309,18 @@ export function createHostComposition(options: HostCompositionOptions): HostComp
     fingerprintRecord,
     rebuildRecord,
   })
+  const codexHome = resolveCodexHomeForSource(options.source, options.codexHome)
+  const query = options.runtime.sessionQuery
+  const returnSync = options.returnStore !== undefined && codexHome !== undefined
+    && query !== undefined && typeof query.observeSession === 'function'
+    ? new ReturnSyncService({ source: options.source, repository, importIndex: index, sessionQuery: query, store: options.returnStore, codexHome, ...(options.now === undefined ? {} : { now: options.now }) })
+    : undefined
   const remoteOptions: CodexHandoffHostRemoteOptions = {
     source: options.source,
     repository,
     engine,
     gateway,
+    ...(returnSync === undefined ? {} : { returnSync }),
     ...(options.timeoutMs === undefined ? {} : { timeoutMs: options.timeoutMs }),
   }
   return {
@@ -285,22 +331,45 @@ export function createHostComposition(options: HostCompositionOptions): HostComp
     engine,
     runtime: options.runtime,
     index,
+    ...(returnSync === undefined ? {} : { returnSync }),
   }
 }
 
 export async function createHostCompositionAsync(options: Omit<HostCompositionOptions, 'index'> & { readonly index?: ImportIndex }): Promise<HostComposition> {
-  if (options.index !== undefined) return createHostComposition(options)
+  // Validate the trusted import source root before opening any Host-owned
+  // storage domain. A configured-home mismatch is a setup error, not a reason
+  // to leak an already-opened import index.
+  const sourceHome = await resolveCanonicalCodexHomeForSource(options.source, options.codexHome)
   const storage = options.runtime.storageDomain
-  if (storage !== undefined && typeof (storage as DshStorageDomainService).open === 'function') {
-    const index = await createStorageDomainImportIndex(storage as DshStorageDomainService)
-    try {
-      return createHostComposition({ ...options, index })
-    } catch (error) {
-      await index.close().catch(() => undefined)
-      throw error
+  const storageService = storage !== undefined && typeof (storage as DshStorageDomainService).open === 'function'
+    ? storage as DshStorageDomainService
+    : undefined
+  const index = options.index ?? (storageService === undefined ? undefined : await createStorageDomainImportIndex(storageService))
+  const canUseReturnSync = sourceHome !== undefined
+    && options.runtime.sessionQuery !== undefined
+    && typeof options.runtime.sessionQuery.observeSession === 'function'
+  let returnStore = options.returnStore
+  let ownsReturnStore = false
+  try {
+    if (returnStore === undefined && canUseReturnSync && storageService !== undefined) {
+      returnStore = await createStorageDomainReturnStore(storageService)
+      ownsReturnStore = true
     }
+    return createHostComposition({
+      ...options,
+      ...(index === undefined ? {} : { index }),
+      ...(returnStore === undefined ? {} : { returnStore }),
+      ...(sourceHome === undefined ? {} : { codexHome: sourceHome }),
+    })
+  } catch (error) {
+    if (ownsReturnStore) {
+      try { await returnStore?.close?.() } catch { /* preserve composition failure */ }
+    }
+    if (options.index === undefined && index !== undefined) {
+      try { await (index as ImportIndex & { close?: () => Promise<void> }).close?.() } catch { /* preserve composition failure */ }
+    }
+    throw error
   }
-  return createHostComposition(options)
 }
 
 const disposedCompositions = new WeakSet<object>()
@@ -313,6 +382,9 @@ async function disposeComposition(composition: HostComposition): Promise<void> {
     await composition.gateway.disposeAll()
   } catch (error) {
     failures.push(error)
+  }
+  if (composition.returnSync !== undefined) {
+    try { await composition.returnSync.close() } catch (error) { failures.push(error) }
   }
   const closeIndex = (composition.index as ImportIndex & { close?: () => Promise<void> }).close
   if (typeof closeIndex === 'function') {
@@ -396,9 +468,12 @@ export interface ApplyOptions {
 export async function apply(ctx: HostContextLike, options: ApplyOptions = {}): Promise<() => Promise<void>> {
   const runtime = runtimeFromContext(ctx)
   const source = options.source ?? await CodexSessionSource.create(options.codexHome)
+  const configuredHome = options.codexHome === undefined ? undefined : resolveCodexHomePath(options.codexHome)
+  const codexHome = await resolveCanonicalCodexHomeForSource(source, configuredHome)
   const composition = await createHostCompositionAsync({
     runtime,
     source,
+    ...(codexHome === undefined ? {} : { codexHome }),
     ...(options.repository === undefined ? {} : { repository: options.repository }),
     ...(options.engine === undefined ? {} : { engine: options.engine }),
     ...(options.index === undefined ? {} : { index: options.index }),

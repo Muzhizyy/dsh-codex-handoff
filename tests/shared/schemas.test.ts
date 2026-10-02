@@ -493,7 +493,7 @@ describe('shared runtime contracts', () => {
   })
 
   it('binds Remote schemas to the method registry and strict source forms', () => {
-    expect(Object.keys(CodexHandoffRemoteSchemas)).toEqual(['compatibility', 'discover', 'preview', 'analyze', 'create'])
+    expect(Object.keys(CodexHandoffRemoteSchemas)).toEqual(['compatibility', 'discover', 'preview', 'analyze', 'create', 'returnPreview', 'returnSync'])
     expect(Object.keys(CodexHandoffRemoteSchemas.compatibility)).toEqual(['response'])
     expect(Object.keys(CodexHandoffRemoteSchemas.create)).toEqual(['request', 'response'])
     const metadata = {

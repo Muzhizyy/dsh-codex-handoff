@@ -217,3 +217,56 @@ export interface CompatibilityView {
   readonly diagnostics: readonly Diagnostic[]
   readonly checkedAt: IsoDateTime
 }
+
+export interface ReturnPreviewRequest {
+  readonly dshSessionId: string
+}
+
+export interface ReturnPreviewResponse {
+  readonly receiptId: string
+  readonly expiresAt: IsoDateTime
+  readonly context: string
+  readonly contextSha256: string
+  readonly contextBytes: number
+  readonly scope: {
+    readonly target: 'fork'
+    readonly dshCursor: number
+    readonly dshRevision?: string
+  }
+  readonly source: {
+    readonly codexThreadId: string
+    readonly codexRolloutRevisionId: string
+    readonly codexFingerprint: string
+    readonly dshSessionId: string
+  }
+  readonly workspace: {
+    readonly canonicalCwd: string
+    readonly workspaceIdentity: string
+    readonly gitFingerprint: string
+    readonly summary: string
+  }
+  readonly warnings: readonly string[]
+}
+
+export interface ReturnSyncRequest {
+  readonly receiptId: string
+}
+
+export type ReturnSyncResponse =
+  | {
+      readonly status: 'created' | 'existing'
+      readonly receiptId: string
+      readonly sourceThreadId: string
+      readonly codexForkId: string
+      readonly resume: {
+        readonly argv: readonly [binary: string, command: 'resume', forkId: string]
+        readonly displayCommand: string
+      }
+    }
+  | {
+      readonly status: 'unknown'
+      readonly receiptId: string
+      readonly sourceThreadId: string
+      readonly codexForkId?: string
+      readonly retry: 'reconcile-only'
+    }

@@ -3,7 +3,7 @@ import type {
   RemoteResult,
   TypertRemoteContribution,
 } from '@deepseek-ai/dsh-typert-protocol'
-import type { AnalyzeRequest, CompatibilityView, CreateOutcome, CreateRequest, DiscoverRequest, PreviewRequest, SessionPage, SessionPreview, SmartPreview } from 'dsh-codex-handoff/types'
+import type { AnalyzeRequest, CompatibilityView, CreateOutcome, CreateRequest, DiscoverRequest, PreviewRequest, ReturnPreviewRequest, ReturnPreviewResponse, ReturnSyncRequest, ReturnSyncResponse, SessionPage, SessionPreview, SmartPreview } from 'dsh-codex-handoff/types'
 
 declare module '@deepseek-ai/dsh-typert-protocol' {
   interface TypertRemoteNamespace$636f64657848616e646f6666 {
@@ -12,6 +12,8 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
     create: (request: CreateRequest, signal?: AbortSignal) => Promise<RemoteResult<CreateOutcome>>
     discover: (request: DiscoverRequest, signal?: AbortSignal) => Promise<RemoteResult<SessionPage>>
     preview: (request: PreviewRequest, signal?: AbortSignal) => Promise<RemoteResult<SessionPreview>>
+    returnPreview: (request: ReturnPreviewRequest, signal?: AbortSignal) => Promise<RemoteResult<ReturnPreviewResponse>>
+    returnSync: (request: ReturnSyncRequest, signal?: AbortSignal) => Promise<RemoteResult<ReturnSyncResponse>>
   }
   interface TypertRemoteMap {
     'codexHandoff/analyze': (request: AnalyzeRequest, signal?: AbortSignal) => Promise<RemoteResult<SmartPreview>>
@@ -19,6 +21,8 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
     'codexHandoff/create': (request: CreateRequest, signal?: AbortSignal) => Promise<RemoteResult<CreateOutcome>>
     'codexHandoff/discover': (request: DiscoverRequest, signal?: AbortSignal) => Promise<RemoteResult<SessionPage>>
     'codexHandoff/preview': (request: PreviewRequest, signal?: AbortSignal) => Promise<RemoteResult<SessionPreview>>
+    'codexHandoff/returnPreview': (request: ReturnPreviewRequest, signal?: AbortSignal) => Promise<RemoteResult<ReturnPreviewResponse>>
+    'codexHandoff/returnSync': (request: ReturnSyncRequest, signal?: AbortSignal) => Promise<RemoteResult<ReturnSyncResponse>>
   }
   interface TypertRemoteNamespaceMap {
     'codexHandoff': TypertRemoteNamespace$636f64657848616e646f6666

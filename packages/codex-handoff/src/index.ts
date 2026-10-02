@@ -10,6 +10,10 @@ import type {
   SessionPage,
   SessionPreview,
   SmartPreview,
+  ReturnPreviewRequest,
+  ReturnPreviewResponse,
+  ReturnSyncRequest,
+  ReturnSyncResponse,
 } from './types.ts'
 
 export type * from './types.ts'
@@ -20,6 +24,8 @@ export interface CodexHandoffImplementation {
   preview(request: PreviewRequest, signal: AbortSignal): Promise<SessionPreview>
   analyze(request: AnalyzeRequest, signal: AbortSignal): Promise<SmartPreview>
   create(request: CreateRequest, signal: AbortSignal): Promise<CreateOutcome>
+  returnPreview(request: ReturnPreviewRequest, signal: AbortSignal): Promise<ReturnPreviewResponse>
+  returnSync(request: ReturnSyncRequest, signal: AbortSignal): Promise<ReturnSyncResponse>
 }
 
 /** Official DSH Typert contributor used by the pinned workspace generator. */
@@ -57,6 +63,16 @@ export class CodexHandoffRemote extends TypertRemoteService {
   @Remote('create')
   create(request: CreateRequest, signal: AbortSignal): Promise<CreateOutcome> {
     return this.implementation.create(request, signal)
+  }
+
+  @Remote('returnPreview')
+  returnPreview(request: ReturnPreviewRequest, signal: AbortSignal): Promise<ReturnPreviewResponse> {
+    return this.implementation.returnPreview(request, signal)
+  }
+
+  @Remote('returnSync')
+  returnSync(request: ReturnSyncRequest, signal: AbortSignal): Promise<ReturnSyncResponse> {
+    return this.implementation.returnSync(request, signal)
   }
 }
 

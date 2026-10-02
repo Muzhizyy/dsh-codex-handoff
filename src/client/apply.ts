@@ -2,6 +2,8 @@ import { HandoffClientModel } from './model.js'
 import { en, localeParity, NS, zh, type LocaleKey } from './locales.js'
 import { adaptCodexHandoffRemote, codexHandoffRemote } from './remote.js'
 import { HandoffAction, HandoffOverlay, type HandoffActionProps, type HandoffOverlayProps } from './components.js'
+import { ReturnClientModel } from './return-model.js'
+import { ReturnHeaderAction, type ReturnHeaderInjected } from './return-components.js'
 import type { ClientContext, ClientLocale, ClientRemoteContribution } from './types.js'
 
 /** Dependencies follow the official Cordis client-plugin inject convention. */
@@ -57,6 +59,8 @@ export async function apply(ctx: ClientContext, contribution: ClientRemoteContri
     const install = (scope: ClientContext, model: HandoffClientModel): (() => Promise<void>) => {
       const scopedLocale = scope.locale
       track(scopedLocale.register(NS, { zh, en }))
+      const returnModel = new ReturnClientModel(adaptCodexHandoffRemote(scope.remote.codexHandoff))
+      track(() => returnModel.dispose())
       track(scope.slots.inject('sidebar.footer.action', () => scope.slots.register(
         {
           name: 'sidebar.footer.action',
@@ -85,6 +89,16 @@ export async function apply(ctx: ClientContext, contribution: ClientRemoteContri
           } satisfies HandoffOverlayFace),
         },
         HandoffOverlay,
+      )))
+      track(scope.slots.inject('conversation.session.header.utilities', () => scope.slots.register(
+        {
+          name: 'conversation.session.header.utilities',
+          id: 'codex-handoff-return',
+          order: 100,
+          locale: NS,
+          inject: () => ({ model: returnModel, locale: scopedLocale } satisfies ReturnHeaderInjected),
+        },
+        ReturnHeaderAction,
       )))
       installDisposer = once(cleanupAll)
       return installDisposer

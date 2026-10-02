@@ -70,8 +70,8 @@ describe('CodexHandoffRemoteService', () => {
     await rm(parent, { recursive: true, force: true })
   })
 
-  it('exposes exactly the five runtime-validated endpoints and rejects forged handles', async () => {
-    expect(HOST_REMOTE_METHODS).toEqual(['compatibility', 'discover', 'preview', 'analyze', 'create'])
+  it('exposes exactly the seven runtime-validated endpoints and rejects forged handles', async () => {
+    expect(HOST_REMOTE_METHODS).toEqual(['compatibility', 'discover', 'preview', 'analyze', 'create', 'returnPreview', 'returnSync'])
     const remote = new CodexHandoffRemoteService({
       source: fixtureSource(),
       repository: new GitRepositoryInspector(),

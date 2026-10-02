@@ -6,6 +6,10 @@ import type {
   ExternalSessionSummary,
   SessionPage,
   SessionPreview,
+  ReturnPreviewRequest,
+  ReturnPreviewResponse,
+  ReturnSyncRequest,
+  ReturnSyncResponse,
   SmartPreview,
 } from '../../../src/shared/types.js'
 import type { ClientRemoteContribution, ClientSessionListSnapshot, ClientSessions, SessionId } from '../../../src/client/types.js'
@@ -50,6 +54,41 @@ export const compatibility: CompatibilityView = {
   checkedAt: '2026-09-05T00:00:00.000Z',
 }
 
+const preparedReturnContext = 'Prepared DSH context for testing.\n<!-- dsh-codex-handoff:receipt=receipt-test-1 -->'
+
+export const returnPreview: ReturnPreviewResponse = {
+  receiptId: 'receipt-test-1',
+  expiresAt: '2026-10-02T04:10:00.000Z',
+  context: preparedReturnContext,
+  contextSha256: 'a'.repeat(64),
+  contextBytes: new TextEncoder().encode(preparedReturnContext).byteLength,
+  scope: { target: 'fork', dshCursor: 42, dshRevision: 'dsh-revision-1' },
+  source: {
+    codexThreadId: 'source-thread-1',
+    codexRolloutRevisionId: 'rollout-revision-1',
+    codexFingerprint: 'b'.repeat(64),
+    dshSessionId: 'dsh-session-current',
+  },
+  workspace: {
+    canonicalCwd: 'C:\\work\\dshp',
+    workspaceIdentity: 'workspace-test',
+    gitFingerprint: 'c'.repeat(64),
+    summary: 'DSHP repository · main branch',
+  },
+  warnings: [],
+}
+
+export const returnSyncOutcome: ReturnSyncResponse = {
+  status: 'created',
+  receiptId: returnPreview.receiptId,
+  sourceThreadId: returnPreview.source.codexThreadId,
+  codexForkId: 'fork-created-1',
+  resume: {
+    argv: ['codex.exe', 'resume', 'fork-created-1'],
+    displayCommand: 'codex.exe resume fork-created-1',
+  },
+}
+
 export function previewFor(source: ExternalSessionSummary = session, bytes = source.byteSize, tokens = 1000, cwdExists = true): SessionPreview {
   return {
     source: { ...source, byteSize: bytes },
@@ -87,6 +126,10 @@ export class FakeRemote implements CodexHandoffRemote {
   createRequests: CreateRequest[] = []
   createCalls = 0
   createShouldFail = false
+  returnPreviewValue = returnPreview
+  returnSyncValue = returnSyncOutcome
+  returnPreviewRequests: ReturnPreviewRequest[] = []
+  returnSyncRequests: ReturnSyncRequest[] = []
 
   compatibility(): Promise<CompatibilityView> {
     return Promise.resolve(this.compatibilityView)
@@ -116,6 +159,18 @@ export class FakeRemote implements CodexHandoffRemote {
     if (signal?.aborted) return Promise.reject(new DOMException('aborted', 'AbortError'))
     if (this.createShouldFail) return Promise.reject({ code: 'INTERNAL', message: 'test failure', recoverable: true })
     return Promise.resolve(this.createOutcome)
+  }
+
+  returnPreview(request: ReturnPreviewRequest, signal?: AbortSignal): Promise<ReturnPreviewResponse> {
+    this.returnPreviewRequests.push(request)
+    if (signal?.aborted) return Promise.reject(new DOMException('aborted', 'AbortError'))
+    return Promise.resolve(this.returnPreviewValue)
+  }
+
+  returnSync(request: ReturnSyncRequest, signal?: AbortSignal): Promise<ReturnSyncResponse> {
+    this.returnSyncRequests.push(request)
+    if (signal?.aborted) return Promise.reject(new DOMException('aborted', 'AbortError'))
+    return Promise.resolve(this.returnSyncValue)
   }
 }
 
