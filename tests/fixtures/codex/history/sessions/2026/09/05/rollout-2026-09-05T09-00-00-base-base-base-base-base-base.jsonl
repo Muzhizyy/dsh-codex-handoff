@@ -1,0 +1,4 @@
+{"timestamp":"2026-09-05T09:00:00.000Z","ordinal":0,"type":"session_meta","payload":{"id":"thread-history","cwd":"C:/synthetic/project","timestamp":"2026-09-05T09:00:00.000Z"}}
+{"timestamp":"2026-09-05T09:00:01.000Z","ordinal":1,"type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"Original objective"}]}}
+{"timestamp":"2026-09-05T09:00:02.000Z","ordinal":2,"type":"response_item","payload":{"type":"message","role":"assistant","content":[{"type":"output_text","text":"Original response"}]}}
+{"timestamp":"2026-09-05T09:00:04.000Z","ordinal":4,"type":"response_item","payload":{"type":"message","role":"assistant","content":[{"type":"output_text","text":"Base record after cutoff must stay hidden"}]}}

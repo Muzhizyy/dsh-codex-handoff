@@ -1,0 +1,2 @@
+{"timestamp":"2026-09-05T02:10:00.000Z","ordinal":0,"type":"session_meta","payload":{"id":"thread-cycle","history_base":{"rollout_id":"cycle-b","end_ordinal_exclusive":2}}}
+{"timestamp":"2026-09-05T02:10:01.000Z","ordinal":1,"type":"response_item","payload":{"type":"message","role":"user","content":"Cycle A"}}

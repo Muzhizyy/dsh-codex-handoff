@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "lib": ["ES2022", "DOM"],
+    "types": [],
+    "jsx": "react-jsx"
+  },
+  "include": [
+    "src/shared/**/*.ts",
+    "src/client/**/*.ts",
+    "src/client/**/*.tsx",
+    "tests/client/**/*.ts",
+    "tests/client/**/*.tsx"
+  ],
+  "exclude": ["dist", "node_modules"]
+}
