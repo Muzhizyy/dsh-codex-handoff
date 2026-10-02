@@ -112,7 +112,7 @@ Client 不传任意正文、source id、cwd 或 target 给 `returnSync`；这些
 3. 用只读 repository inspector 取得 canonical cwd、workspace identity 和 Git/filesystem fingerprint。当前仓库事实高于对话陈述。
 4. redaction 后生成有界 context，尾部加入唯一 marker：`<!-- dsh-codex-handoff:receipt=<receiptId> -->`。marker 用于审计和未来只读 raw-rollout recovery，不代表当前公共 read/list API 可见。
 5. receipt digest 绑定 compiler/schema version、Codex source identity、DSH session/cursor/revision、workspace identity、Git fingerprint、context SHA-256 和 target `fork`。
-6. 将完整 prepared record 写入插件自己的 `storageDomain` KV table，并等待 `put/update` Promise 成功后才返回 receipt。0.2.0-rc.2 `storage-domain/src/domain.ts` 明确规定每次写操作在 backend durability 与 event emission 完成后才 resolve；不存在也不需要另造独立 `flush` API。
+6. 将完整 prepared record 写入插件自己的 `storageDomain` global singleton，并等待 `global.set` Promise 成功后才返回 receipt。该 global 在空存储时提供声明的初始值；0.2.0-rc.2 的 `KvTable.update` 对不存在的 key 返回 `missing-key`，不能用于初始化。`global.set` 在 backend durability 与 event emission 完成后才 resolve；不存在也不需要另造独立 `flush` API。
 
 默认 soft limit 64 KiB，hard limit 256 KiB UTF-8。超过 soft limit 优先保留目标、已完成工作、repo facts、失败尝试、未完成项和 provenance；超过 hard limit 拒绝。
 
@@ -166,12 +166,14 @@ transport 优先使用 `codex app-server proxy` 连接运行中的 daemon；isol
 ## 7. Durable 状态机与幂等
 
 ```text
-prepared -> dispatching -> forked -> injected -> complete
-                    |          |         |
-                  failed       +---------+--> unknown -> complete(reconciled)
+prepared -> dispatching -> forked -> injecting -> complete
+dispatching -> failed | unknown
+forked      -> unknown
+injecting   -> unknown
+unknown     -> terminal (MVP)
 ```
 
-每个 receipt 单飞，并通过 storageDomain KV table 的原子/版本检查更新推进；每次关键转换都必须 await `put/update` 的 durable completion：
+每个 receipt 单飞；同一 Host 的 coordinator 共享一个 return store，store 将读取、状态/attempt 检查与 `global.set` 写入串行化。DSH facility 在同一进程拒绝重复打开同名 domain；每次关键转换都必须 await `global.set` 的 durable completion。此实现不宣称跨进程 CAS：
 
 - `complete` 再调用：返回同一 fork，`status: existing`。
 - `forked` 且确定 inject 未发送：复用该 fork，禁止再 fork。
@@ -205,7 +207,7 @@ DSH desktop 只保证将 `http/https` 作为外链，不假设 `codex://` 可打
 | `CODEX_SOURCE_THREAD_NOT_FOUND` | source 无法 fork |
 | `RETURN_RESULT_UNKNOWN` | request 后断线，结果不确定 |
 | `RECONCILE_INCONCLUSIVE` | 预留给未来只读 raw-rollout reconciler；MVP 不自动对账 |
-| `RETURN_STORAGE_FAILED` | receipt/outbox 的 durable `put/update` 失败 |
+| `RETURN_STORAGE_FAILED` | receipt/outbox 的 durable `global.set` 失败 |
 
 错误必须是结构化 `{ code, recoverable, message }`；不得向 Client 回显 raw stderr、环境变量、credentials 或完整内部路径。
 

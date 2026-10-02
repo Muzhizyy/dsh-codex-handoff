@@ -1,5 +1,7 @@
 # dsh-codex-handoff 产品与技术规格
 
+> 历史规格提示（2026-10-02）：本文保留原有日期、版本 pin 与决策作为历史设计记录。DSH `0.2.0-rc.2` / Session Format v4 的增量取代本文旧 DSH baseline；关于 DSH→Codex 回传的旧 non-goal 由[增量 SPEC](./docs/2026-10-roundtrip-spec.md)明确覆盖。当前范围与实施顺序见[增量实施计划](./docs/2026-10-roundtrip-plan.md)。未被增量合同覆盖的导入、安全与只读约束继续有效。
+
 > 状态：MVP implementation-ready  
 > 研究基线：见 `RESEARCH.md`，DSH `0.1.3-alpha.1` / commit `d347e703…`，Codex commit `de787406…`  
 > 规范关键词：MUST/必须、SHOULD/应该、MAY/可以按 RFC 2119 语义解释。

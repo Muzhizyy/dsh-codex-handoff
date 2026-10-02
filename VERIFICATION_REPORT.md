@@ -1,5 +1,7 @@
 # Independent Verification Report — dsh-codex-handoff
 
+> Historical verification scope (2026-10-02): this report records the independent baseline check performed on 2026-09-05 and does not verify the DSH `0.2.0-rc.2` / Session Format v4 migration or Codex return path. Keep its original evidence and date intact; current release claims require a fresh independent verifier against the incremental [SPEC](./docs/2026-10-roundtrip-spec.md) and [plan](./docs/2026-10-roundtrip-plan.md).
+
 ## Overall result: PASS
 
 Verified on 2026-09-05 (Asia/Shanghai) in `D:\Project\DSHP`.

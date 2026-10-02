@@ -188,7 +188,7 @@ try {
   await ensureFile(cli, 'pinned DSH CLI')
   const versionResult = await run('node', [cli, '--version'], repoRoot, environment)
   const versionOutput = `${versionResult.stdout}\n${versionResult.stderr}`.trim()
-  assert(/(?:^|\r?\n)0\.1\.3-alpha\.1(?:\r?\n|$)/u.test(versionOutput), `pinned DSH CLI version is not 0.1.3-alpha.1: ${versionOutput}`)
+  assert(/(?:^|\r?\n)0\.2\.0-rc\.2(?:\r?\n|$)/u.test(versionOutput), `pinned DSH CLI version is not 0.2.0-rc.2: ${versionOutput}`)
   const profileArgs = ['plugin', '--profile', 'web']
   const profileRoot = join(home, 'profiles', 'web')
   const profileManifestPath = join(profileRoot, 'package.json')

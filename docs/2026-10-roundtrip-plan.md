@@ -74,20 +74,20 @@ returnSync({ receiptId })
 ```ts
 interface ReturnRecord {
   receiptId: string
-  state: 'prepared' | 'dispatching' | 'forked' | 'injected' | 'complete' | 'unknown' | 'failed'
+  state: 'prepared' | 'dispatching' | 'forked' | 'injecting' | 'complete' | 'unknown' | 'failed'
   prepared: FrozenReturnPreview
   codexForkId?: string
   attemptStartedAt?: string
   completedAt?: string
-  version: number
+  attemptId?: string
 }
 ```
 
 任务：
 
-1. 使用插件 `storageDomain` KV table，以 0.2.0-rc.2 的 `put/update` 做原子/版本检查更新；必须 await 其 Promise。该 Promise 已是 backend durability + event emission 边界，不实现或调用额外 flush。
-2. `returnPreview` 顺序：权威 source metadata → one DSH observation → one Git snapshot → compile → await durable prepare `put/update` → response。
-3. `returnSync` 顺序：load receipt → TTL/fresh source/log/Git/cwd 校验 → single-flight/CAS → fork → await durable fork-id `put/update` → inject success `{}` → await durable injected/complete `put/update`。
+1. 使用插件 `storageDomain` 声明初始值的 global singleton。同一 Host 的 coordinator 共享一个 store，store 将状态/attempt 检查和写入串行化；必须 await 每次 `global.set` Promise。该 Promise 已是 backend durability + event emission 边界，不实现或调用额外 flush。空 key 的 `KvTable.update` 会返回 `missing-key`，不得用于初始化；本 MVP 不承诺跨进程 CAS。
+2. `returnPreview` 顺序：权威 source metadata → one DSH observation → one Git snapshot → compile → await durable prepare `global.set` → response。
+3. `returnSync` 顺序：load receipt → TTL/fresh source/log/Git/cwd 校验 → single-flight/attempt claim → fork → await durable fork-id `global.set` → inject success `{}` → await durable complete `global.set`。
 4. crash recovery 严格执行 SPEC：已知 fork id 且确定 inject 未发送时才可继续；inject outcome 不确定则永久 unknown；未知 fork response 不再 fork。
 5. 相同 receipt 20 个并发请求测试只调用一次 fork；complete 重试返回 `existing`。
 
@@ -135,7 +135,7 @@ interface ReturnRecord {
 - observation cursor/revision、source metadata、Git fingerprint 任一变化使 receipt stale。
 - TTL 边界、canonical digest、64/256 KiB、redaction、marker。
 - JSON-RPC initialize/fork/inject/read/list 的成功与畸形响应。
-- storage 每一状态转换、`put/update` durability failure 与 CAS conflict。
+- storage 每一状态转换、`global.set` durability failure 与共享 store 的 attempt conflict。
 - `created`、`existing`、`unknown` 联合类型。
 - resume command 的 Windows/PowerShell 与 POSIX 安全显示；结构化 argv 不走 shell。
 

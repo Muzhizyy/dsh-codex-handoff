@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 const scriptDir = dirname(fileURLToPath(import.meta.url))
 const repoRoot = resolve(scriptDir, '..')
 const packageJson = JSON.parse(await readFile(resolve(repoRoot, 'package.json'), 'utf8'))
+const expectedRemoteEndpoints = ['compatibility', 'discover', 'preview', 'analyze', 'create', 'returnPreview', 'returnSync']
 
 async function requireFile(relativePath) {
   const path = resolve(repoRoot, relativePath)
@@ -39,7 +40,7 @@ for (const relativePath of ['dist/remote.js', 'dist/remote.d.ts', 'dist/typert.j
   // and in the generated Client Remote declaration. Do not replace that
   // official safety boundary with a hand-written declaration.
   if (relativePath !== 'dist/typert.d.ts') {
-    for (const method of ['compatibility', 'discover', 'preview', 'analyze', 'create']) {
+    for (const method of expectedRemoteEndpoints) {
       if (!descriptor.includes(method)) throw new Error(`${relativePath} is missing remote endpoint ${method}`)
     }
   }

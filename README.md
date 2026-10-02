@@ -1,59 +1,74 @@
 # dsh-codex-handoff
 
-把 Codex 的可验证会话上下文带到 DeepSeek Harness（DSH）中继续工作。插件读取 Codex 会话和当前仓库，先展示发现结果与预览，再通过官方 DSH Agent API 创建普通、可恢复的会话；它不写入 Codex 源文件、不重放历史工具，也不直接写 DSH JSONL。
+把可验证的 Codex 会话上下文带到 DeepSeek Harness（DSH）继续工作，并可显式把某个已导入 DSH 会话的最新上下文回传到新的 Codex fork。当前兼容目标仅为官方 DSH `dsh-v0.2.0-rc.2`（`639ed015397290b3745d163aafe02ffee4aa3f84`，Session Format v4）；未在此版本验证的 DSH 版本不承诺兼容。原始研究基线见[历史研究报告](./RESEARCH.md)，DSH 0.2 回传增量以[实现合同](./docs/2026-10-roundtrip-spec.md)和[实施计划](./docs/2026-10-roundtrip-plan.md)为准。
 
-本项目目前是面向 DSH `d347e703908d0406b7a7ef80e3a0e594d86b2215`（`0.1.3-alpha.1`）的 developer-preview 插件。DSH 的公开 API 仍可能变化，安装前请保留可恢复的 DSH home 备份。
+## 安装到官方 Desktop
 
-## 安装
+本仓库不声称该插件已发布到 npm。使用此版本构建出的确切预构建 tarball：
 
-优先使用已构建的 npm 包或 `.tgz`：
-
-```sh
-dsh plugin --profile web add dsh-codex-handoff
-# 或：
-dsh plugin --profile web add ./dsh-codex-handoff-0.1.0-alpha.1.tgz
+```powershell
+pnpm run build
+pnpm pack --pack-destination artifacts
+# 产物：artifacts/dsh-codex-handoff-0.2.0-rc.2.tgz
 ```
 
-安装后重启对应 Web profile。插件贡献一个 `dsh.bundle.patch` Host 层和一个 Web Client bundle；patch 只插入本插件行，基座的 session、Agent、storage、preset 和 Typert 组合仍由 DSH profile 负责。缺少必需服务时会 fail closed，不会偷偷替换基座。
+先启动 DeepSeek Harness Desktop 一次以初始化其 Desktop profile，再完全退出应用。随后从仓库目录运行其附带的 `dsh` 命令，把刚生成的 tarball 安装到 Desktop profile：
 
-从源码构建只建议用于开发：请 checkout 上述固定 SHA，使用 Node `^22.19.0 || >=24.0.0` 和仓库声明的 pnpm 版本，先构建 DSH 固定版本，再构建本项目。源码安装可能运行 `prepare` 或依赖构建脚本；请在 pnpm 的 `allowBuilds`/生命周期策略中明确批准所需依赖，并在隔离目录执行。发布 tarball 不要求不可信消费者运行源码构建。
+```powershell
+dsh plugin --profile desktop add .\artifacts\dsh-codex-handoff-0.2.0-rc.2.tgz
+```
 
-## 使用
+重新启动 Desktop 后使用插件。更新同一 tarball 时也先完全退出 Desktop，再执行 `dsh plugin --profile desktop add <确切的本地 .tgz 路径>`；检查可用 `dsh plugin --profile desktop list`。卸载同样要先退出 Desktop：
 
-从侧边栏 footer 的 `Continue from Codex` 打开 overlay。插件会列出活动/归档会话，支持搜索、分页和预览；预览会显示来源 session、cwd、Git/文件诊断、大小和健康状态。选择已存在且确认的 cwd 后选择模式：
+```powershell
+dsh plugin --profile desktop remove dsh-codex-handoff
+```
 
-- Smart（默认）：确定性仓库事实优先；可选择使用当前 DSH 模型改善摘要，也可选择 deterministic/no-LLM。模型不可用时会显示 degraded 并回退，不伪造分析结果。
-- Full：保存可安全表示的历史消息和已闭合的真实工具配对，不执行历史命令。大内容需要额外确认，超过硬限制会拒绝而不是静默切换模式。
+不要改用 `pnpm add dsh-codex-handoff`、`npm install dsh-codex-handoff` 或未经验证的普通 CLI profile。tarball 由官方 Typert 生成物、Host 与 Client 构建结果组成；安装时不需要在消费者机器上从源码运行 lifecycle scripts。
 
-创建成功只在 DSH Agent 已发布且刷新后的 session 列表确认包含新 id 后打开；workspace attach 失败会显示 `created_unattached` 警告并保留可重试状态。相同 source fingerprint、cwd、mode 和 compiler schema 的重试是幂等的；源发生变化要求重新预览。
+## 从 Codex 导入到 DSH
+
+从侧边栏 footer 的 `Continue from Codex` 打开导入界面。它以只读方式发现 Codex 会话并展示来源、工作目录、Git/文件诊断、大小和健康状态。选择有效 cwd 与导入模式：
+
+- **Smart（默认）**：确定性仓库事实优先；可选择用当前 DSH 模型增强摘要，也可选择 deterministic/no-LLM。模型不可用时明确降级，不伪造分析结果。
+- **Full**：保存可安全表示的历史消息和已闭合的真实工具配对；不执行历史命令。大内容需额外确认，超过硬限制会拒绝。
+
+导入只经官方 DSH Agent API 创建可持久化 session，不写 Codex 源文件或物理 DSH JSONL。历史 tool 记录不会被重放。源变更要求重新预览；workspace attach 失败会显示 `created_unattached`，并保留可重试状态。
+
+## 从 DSH 回传到 Codex
+
+回传只对插件权威索引中可链接到原 Codex source 的已导入 DSH session 提供，不接受任意会话、source id 或 Client 正文。`returnPreview` 从一个 DSH v4 observation cut 和权威 source/workspace 信息编译完整、脱敏上下文；用户确认后，`returnSync` 只创建持久化 Codex **fork**，并把上下文作为 user-role Responses item 注入该 fork。
+
+在当前已导入的 DSH 会话 header 中选择回传，检查预览中的目标、仓库事实、准备注入的正文和警告，再明确确认。成功后复制界面提供的 `resume` 命令，自行在 Codex 打开新 fork。预览只汇集原始目标、最近用户意图、当前仓库事实及有界的近期 DSH 活动与失败摘录；超出事件或总上下文限制的内容会给出截断/省略警告。它不是完整 DSH transcript，也没有无限的记忆或上下文容量。
+
+回传需要可可靠核验的 Git workspace。非 Git 目录、无法安全读取的 Git 状态，以及有敏感变更路径（例如 `.env*` 或密钥文件）的工作区会拒绝回传；处理这些情况后须重新预览。预览与确认之间的 DSH 会话、Codex 来源或 Git 状态变化也要求重新预览。
+
+- 原 Codex source thread 不变；不会向它注入内容。
+- 回传不调用 LLM、不启动 Codex turn、不执行工具。
+- 共七个 typed RPC：`compatibility`、`discover`、`preview`、`analyze`、`create`、`returnPreview`、`returnSync`。
+- 不假装自动打开 fork：成功态提供可复制的 fork ID 和 `resume` 命令，是否打开由用户决定。
+- 若 fork/inject 的结果因断线而无法确认，界面必须显示“结果不确定”；不会盲目重试、再 fork 或把 unknown 显示为成功。
+
+详见[回传实现合同](./docs/2026-10-roundtrip-spec.md)与[实施计划](./docs/2026-10-roundtrip-plan.md)。本能力不是双向实时同步，也不改写 Codex rollout、数据库或凭据。
 
 ## 隐私与安全
 
-任何模式都需要显式同意。Full 会把可安全表示的历史持久化，并可能在以后用户显式提交 DSH turn 时发送给当前配置模型；Smart with model 会把有界、尽力脱敏的证据发送给当前模型，编译上下文同样会在以后显式 turn 到达模型；Smart deterministic/no-LLM 不调用模型，但持久化上下文仍可能在以后显式 turn 发送给当前模型。
+两个方向均需显式用户操作。脱敏是 best effort，不是保证；预览内容在继续前应由用户检查。默认拒绝 `.env*`、`.ssh`、私钥、凭据/认证文件和 Codex auth 文件等敏感路径，不读取 Codex credentials。仓库检查使用受限的 argv-only Git 只读调用，禁用 pager、prompt、hooks、网络、external diff 和 textconv。
 
-脱敏是 best effort，不是保证。默认拒绝 `.env*`、`.ssh`、私钥、凭据/认证文件和 Codex auth 文件等敏感路径；预览和诊断限制大小，不渲染原始 HTML。若内容包含秘密，请在同意前自行检查；无法证明来源、指纹、cwd、Git 范围或 DSH 兼容性时插件会拒绝操作。
+导入的 Smart/model 路径会把有界证据发送给当前 DSH 模型；Full 与 Smart deterministic/no-LLM 的创建路径不调用分析模型。回传路径始终 no-LLM，但注入 DSH 历史的内容以后仍可能在用户显式启动 Codex turn 时进入模型上下文。插件不直接写 Codex rollout、数据库、认证材料或 DSH JSONL。
 
-导入期间不会执行历史工具、approval 或命令；仓库检查使用受限的 argv-only Git 读取，禁用 pager、prompt、hooks、网络、external diff 和 textconv。Codex home 与源 rollout 以只读方式处理，并由测试验证导入前后哈希不变。
+## 故障排查与兼容范围
 
-## 故障排查与限制
-
-- 看不到入口：确认运行的是 Web profile，且 `sidebar.footer.action`/`shell.overlay` 与 locale、React、sessions 服务可用。
-- 显示不兼容：确认 DSH 是固定 SHA 或兼容版本，并重启 profile；插件不支持猜测未来 API。
-- `CWD_REQUIRED`/`CWD_NOT_FOUND`/`SOURCE_CHANGED`：选择实际存在的源 cwd，重新发现并预览，不要强行复用旧预览。
-- `SESSION_NOT_VISIBLE`：刷新或重启 profile 后检查列表；插件不会因可见性失败重复创建。
-- `created_unattached`：目标 session 已创建但 workspace attach 未确认，可在 DSH 中打开目标 session 后重新处理 workspace。
-- 缺失、损坏、压缩超限或未闭合的 Codex 历史会以 partial/corrupt/unsupported 和诊断呈现；Full 不会把缺失部分猜成成功。
-- DSH、Codex 和模型 provider 的版本、权限、凭据及服务配置不属于本插件控制范围；no-LLM 只表示创建路径不调用分析模型，并不保证未来 DSH turn 不发送持久化上下文。
-
-卸载：
-
-```sh
-dsh plugin --profile web remove dsh-codex-handoff
-```
-
-卸载只移除插件 bundle 层，不删除已经创建的 DSH session、Codex 源文件、仓库文件或用户的 DSH home。若 profile 正在运行，请按 DSH 规则重启后确认插件行已消失。
+- 找不到 Desktop profile：启动 Desktop 一次完成初始化，完全退出后再用 `dsh plugin --profile desktop ...` 管理。
+- 显示不兼容：确认安装的确切 tarball 是本次构建产物，并使用已验证的 DSH `0.2.0-rc.2` Desktop；本项目不推测未来 API 兼容性。
+- `CWD_REQUIRED` / `CWD_NOT_FOUND` / `SOURCE_CHANGED`：重新发现并预览；不要复用过期事实。
+- `created_unattached`：DSH session 已创建，但 workspace attach 未确认；查看警告后在 DSH 中处理。
+- 回传显示 unknown：检查 Codex fork 列表/状态并谨慎人工处理；本 MVP 不自动对账或重发注入。
+- 历史缺失、损坏、压缩超限或未闭合记录会以 partial/corrupt/unsupported 和诊断呈现；插件不会把未知状态伪报为成功。
 
 ## 开发与验证
+
+这个交付目录最初没有 `.git` 历史；`dff7d29` 是 2026-10-02 保存的改动前代码基线快照，并非原始开发历史的重建。`204ef19`、`cae6cd5` 与当前功能里程碑 `ed127e1` 分别记录随后实际完成的合同、DSH v4 迁移及回传功能增量。提交日期反映实际记录时间，没有伪造早期历史日期，也没有向远端推送；后续文档修订以工作区状态为准。
 
 ```sh
 pnpm install
@@ -62,10 +77,24 @@ pnpm test:client
 pnpm build:client
 pnpm check:pack
 pnpm test:pinned-dsh-client
+pnpm test:pinned-dsh
 ```
 
-完整 `pnpm check` 还会运行仓库各层测试、lint、Host build、打包和禁止导入检查。固定 DSH acceptance 会在临时 checkout 中使用官方 loader/Gateway/Agent API；它不是 JSONL 存在性测试。上游安装产生的 platform/deprecation 诊断应只归类为 upstream-only，不得掩盖本项目失败。
+`pnpm test:pinned-dsh` 使用精确上游 checkout 的公开 Agent/Session API 验证真实 `agents.create()`、v4 SessionQuery observation、持久化 list、resume 和显式续跑；不代表已安装 Desktop 的 profile 插件管理测试。后者可在 Windows 隔离 home 中运行：先创建 `.desktop-test` 下的空目录，将它设为 `DSH_TEST_HOME`，再运行 `pnpm test:installed-desktop`。验收脚本通过安装版 app.asar 的 `@deepseek-ai/dsh-app-boot.initProfile()`（与 Desktop profile bootstrap 使用同一官方初始化导出）创建默认 profile，不启动 Electron GUI；随后以 `ELECTRON_RUN_AS_NODE` 调用已安装 CLI 做本地 tarball add/list/remove。脚本拒绝默认 `~/.dsh`，且不会自动清理测试 home。可用 `--initialize-profile-only` 单独验证隔离初始化。完整 `pnpm check` 运行 Host build、全部测试、lint、打包和禁止导入检查。
+
+已完成的实际验收见[独立验证报告](./docs/2026-10-verification.md)：安装版 Desktop CLI 的隔离 add/list/remove，以及通过安装版 DSH runtime 服务 API 和官方 Codex API 完成的隔离回传已通过；后者验证了派生 fork 的上下文持久化、源文件哈希不变、零 Codex turns、存储关闭重开后的恢复，以及重复同步返回 `existing` 和预览复用。Electron 窗口中的按钮点击与 overlay 流程未运行，CLI/API 结果不构成完整 GUI 验收。
+
+本次官方 Typert 源码编译、确定性生成、打包及安装版 Desktop CLI add/list/remove 的实测命令与结果记录在[打包验收记录](./docs/2026-10-packaging-verification.md)。
+
+如果 `dsh` 不在 `PATH`，也可在 PowerShell 直接调用随 Desktop 安装的 CLI（先确保 profile 已由 Desktop 初始化并完全退出）：
+
+```powershell
+$archive = (Resolve-Path .\artifacts\dsh-codex-handoff-0.2.0-rc.2.tgz).Path
+& "$env:LOCALAPPDATA\Programs\DeepSeek Harness\resources\runtime\cli\bin\dsh.cmd" plugin --profile desktop add $archive
+```
+
+这与脚本相同，使用 `plugin --profile desktop` 参数顺序；它不是 `dsh --profile desktop plugin ...`。
 
 ## English summary
 
-`dsh-codex-handoff` is a developer-preview plugin for DeepSeek Harness commit `d347e703908d0406b7a7ef80e3a0e594d86b2215`. It discovers Codex sessions read-only, previews repository facts, and creates a normal resumable DSH Agent session through the official typed API. Smart is deterministic-first and optionally uses the current model; Full preserves only safely representable history. Both require explicit consent. Redaction is best effort, historical tools are never replayed, and the plugin never writes Codex data or physical DSH JSONL. Install a prebuilt npm/tarball package when possible; source builds and lifecycle scripts require an isolated checkout and explicit pnpm build approval. See the Chinese sections above for install, privacy, troubleshooting, limitations, and uninstall details.
+This build targets only official DeepSeek Harness `dsh-v0.2.0-rc.2` / commit `639ed015397290b3745d163aafe02ffee4aa3f84` (Session Format v4). Install the exact locally built `artifacts/dsh-codex-handoff-0.2.0-rc.2.tgz` into the initialized Desktop profile with `dsh plugin --profile desktop add <archive>`; this package is not claimed to be published on npm. When `dsh` is not on `PATH`, the installed PowerShell fallback is `& "$env:LOCALAPPDATA\Programs\DeepSeek Harness\resources\runtime\cli\bin\dsh.cmd" plugin --profile desktop add <absolute-tgz>`. The plugin provides Codex-to-DSH import and an explicit, fork-only return for linked/imported DSH sessions. Return leaves the source Codex thread unchanged, invokes no model, does not auto-open the fork, and reports uncertain outcomes as unknown without retrying. See the [incremental SPEC](./docs/2026-10-roundtrip-spec.md) and [implementation plan](./docs/2026-10-roundtrip-plan.md). The [completed verification report](./docs/2026-10-verification.md) records isolated installed CLI and DSH/Codex API proof; the Electron window click flow was not run. The original [research report](./RESEARCH.md) is historical and its earlier DSH pin is superseded.

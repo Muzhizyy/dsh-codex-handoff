@@ -1,5 +1,7 @@
 # dsh-codex-handoff 实施计划
 
+> 历史实施计划提示（2026-10-02）：本文记录早期实现波次与原 DSH pin，不再是本轮执行授权或当前兼容合同。DSH v4 与回传增量请遵循[2026-10 roundtrip SPEC](./docs/2026-10-roundtrip-spec.md)和[实施计划](./docs/2026-10-roundtrip-plan.md)；保留本文原有历史信息，不以旧 agent 分工或旧版本要求覆盖新合同。
+
 > 本文件只规划实际实现；当前阶段不产生源代码、测试、配置或构建脚本。  
 > 所有 source/test/config/fix/refactor 必须由 **GPT-5.6 Luna X High** 完成。  
 > Research/architecture/interface review 由 **GPT-5.6 Sol High** 负责；最终独立验收由 **GPT-5.6 Sora Medium** 负责。

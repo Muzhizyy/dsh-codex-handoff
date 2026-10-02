@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 
 const execFileAsync = promisify(execFile)
-export const PINNED_SHA = 'd347e703908d0406b7a7ef80e3a0e594d86b2215'
+export const PINNED_SHA = '639ed015397290b3745d163aafe02ffee4aa3f84'
 export const PINNED_REMOTE = 'https://github.com/deepseek-ai/deepseek-harness.git'
 export const scriptDir = dirname(fileURLToPath(import.meta.url))
 export const repoRoot = resolve(scriptDir, '..')

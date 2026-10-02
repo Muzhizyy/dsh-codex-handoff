@@ -102,9 +102,9 @@ async function main() {
   assert(sourceMapMatch !== null, 'packed Remote declaration is missing its official source map reference')
   assert(await filesIn(packageRoot).then(files => files.includes(`dist/${sourceMapMatch[1]}`)), `packed Remote declaration map is missing: ${sourceMapMatch?.[1]}`)
   assert(packageJson.engines?.node === '^22.19.0 || >=24.0.0', 'packed manifest must keep the pinned Node engine range')
-  assert(packageJson.dsh?.compatibility?.peerDependencies?.['@deepseek-ai/dsh-api-gateway'] === '>=0.1.3-alpha.1 <0.1.4', 'packed manifest has an unexpected DSH Gateway compatibility range')
-  assert(packageJson.dsh?.compatibility?.peerDependencies?.['@deepseek-ai/dsh-typert-protocol'] === '>=0.1.3-alpha.1 <0.1.4', 'packed manifest has an unexpected DSH Typert compatibility range')
-  assert(!Object.values(packageJson.dsh?.compatibility?.peerDependencies ?? {}).some(value => typeof value === 'string' && /0\.1\.2|0\.1\.3-alpha\.2/u.test(value)), 'packed manifest contains a stale DSH compatibility range')
+  assert(packageJson.version === '0.2.0-rc.2', 'packed manifest has an unexpected plugin version')
+  assert(packageJson.dsh?.compatibility?.peerDependencies?.['@deepseek-ai/dsh-api-gateway'] === '0.2.0-rc.2', 'packed manifest is not pinned to the tested DSH Gateway release')
+  assert(packageJson.dsh?.compatibility?.peerDependencies?.['@deepseek-ai/dsh-typert-protocol'] === '0.2.0-rc.2', 'packed manifest is not pinned to the tested DSH Typert release')
   assert(packageJson.dsh?.bundle?.patch === './cordis.patch.yml', 'packed manifest lacks nested dsh.bundle.patch')
   assert(Array.isArray(packageJson.dsh?.client?.inject) && packageJson.dsh.client.inject.length > 0, 'packed manifest lacks dsh.client.inject')
 
@@ -144,8 +144,11 @@ async function main() {
   assert(typeof rootModule.apply === 'function' && typeof rootModule.CodexHandoffHostService === 'function', 'Host export does not load')
   const remoteModule = await import(pathToFileURL(join(installedRoot, installedPackage.exports['./remote'].default.slice(2))).href)
   assert(Array.isArray(remoteModule.default?.descriptors), 'Remote export did not load a generated contribution')
-  assert(remoteModule.default.descriptors.length === 5, 'generated Remote contribution is empty/incomplete')
+  assert(remoteModule.default.descriptors.length === 7, 'generated Remote contribution must expose all seven RPC methods')
   assert(remoteModule.default.descriptors.some(item => item.method === 'compatibility'), 'generated Remote lacks compatibility')
+  for (const method of ['discover', 'preview', 'analyze', 'create', 'returnPreview', 'returnSync']) {
+    assert(remoteModule.default.descriptors.some(item => item.method === method), `generated Remote lacks ${method}`)
+  }
   const typertModule = await import(pathToFileURL(join(installedRoot, installedPackage.exports['./typert'].default.slice(2))).href)
   assert(typertModule.TYPERT !== undefined, 'Typert Host export did not load')
 
@@ -164,7 +167,7 @@ async function main() {
   }
   await import(pathToFileURL(join(installedRoot, installedPackage.exports['./client'].default.slice(2))).href)
   assert(clientModule !== undefined, 'Client export did not register with the official loader shape')
-  assert(clientModule.codexHandoffRemote?.descriptors?.length === 5, 'packed Client lacks official descriptors')
+  assert(clientModule.codexHandoffRemote?.descriptors?.length === 7, 'packed Client lacks the seven official Remote descriptors')
 
   process.stdout.write(`pack/install gate passed: ${archives[0]} (ignore-scripts; official Host/Client/Remote/Typert loaded)\n`)
 }

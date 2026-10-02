@@ -51,8 +51,9 @@ const engineModule = await import(pathToFileURL(resolve(repoRoot, 'dist', 'hando
 const contributor = await import(pathToFileURL(resolve(contributorRoot, 'lib', 'types', 'index.js')).href)
 
 assert.equal(typeof contributor.CodexHandoffRemote, 'function', 'official contributor class is missing')
-assert.deepEqual(rootTypert.TYPERT.invocations.map(item => item.method).sort(), ['analyze', 'compatibility', 'create', 'discover', 'preview'])
-assert.deepEqual(rootRemote.default.descriptors.map(item => item.method).sort(), ['analyze', 'compatibility', 'create', 'discover', 'preview'])
+const expectedMethods = ['analyze', 'compatibility', 'create', 'discover', 'preview', 'returnPreview', 'returnSync']
+assert.deepEqual(rootTypert.TYPERT.invocations.map(item => item.method).sort(), expectedMethods)
+assert.deepEqual(rootRemote.default.descriptors.map(item => item.method).sort(), expectedMethods)
 
 const fixtureRoot = resolve(repoRoot, 'tests', 'fixtures', 'codex', 'normal')
 const source = new resolver.CodexSessionSource({

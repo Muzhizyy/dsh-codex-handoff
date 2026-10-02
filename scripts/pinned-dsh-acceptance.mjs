@@ -201,6 +201,7 @@ function assertSeedContract(seed, compilation) {
   assertDenseSeed(seed)
   const types = seed.map((item) => item.type)
   assert(types.filter((type) => type === 'turn/start').length >= 2, 'multi-turn seed was not emitted')
+  assert(!types.includes('session/end-seed'), 'compiler emitted the constructor-owned end-seed marker')
   assert(types.includes('step/start') && types.includes('step/end'), 'multi-step seed was not emitted')
   assert(types.includes('tool/call') && types.includes('tool/result'), 'tool history was not emitted')
   assert(types.includes('turn/end'), 'turn closing event was not emitted')
@@ -211,7 +212,7 @@ function assertSeedContract(seed, compilation) {
   assert(call && result, 'paired tool events missing')
   assert(Array.isArray(result.sourceEventSeqs) && result.sourceEventSeqs.includes(call.seq), 'tool provenance reference missing')
   assert(compilation.diagnostics.every((diagnostic) => typeof diagnostic.code === 'string'), 'diagnostic code missing')
-  const notice = seed.find((item) => (item.data?.source ?? item.data?.message?.source)?.plugin === 'dsh-codex-handoff')
+  const notice = seed.find((item) => (item.data?.source ?? item.data?.message?.source)?.kind === 'plugin:dsh-codex-handoff')
   const noticeSource = notice?.data?.source ?? notice?.data?.message?.source
   assert(noticeSource?.form === 'notice', `includeNotice did not emit a plugin-source notice: ${seed.map((item) => `${item.type}:${JSON.stringify(item.data).slice(0, 500)}`).join(' | ')}`)
   assert(typeof noticeSource.summary === 'string' && noticeSource.summary.length > 0, 'plugin-source notice summary missing')
@@ -411,7 +412,10 @@ function gatewayRuntime(ctx, handles, createCalls = []) {
     agentDefaultModel: { currentSelection: () => ({ provider: 'mock', model: 'mock' }) },
     agentPresets: ctx.agentPresets,
     sessionQuery: {
-      inspect: async (id) => ctx.agents.get(SessionId(id))?.session,
+      observeSession: async (id, options) => ctx.sessionQuery.observeSession(SessionId(id), {
+        projectionMode: 'none',
+        ...(options?.signal === undefined ? {} : { signal: options.signal }),
+      }),
     },
     sessionPersistence: ctx.sessionPersistence,
     workspaceRegistry: {
@@ -420,8 +424,8 @@ function gatewayRuntime(ctx, handles, createCalls = []) {
     storageDomain: ctx.storageDomain,
     typert: {},
     llm: ctx.llm,
-    dshVersion: '0.1.3-alpha.1',
-    observedSessionFormat: 2,
+    dshVersion: '0.2.0-rc.2',
+    observedSessionFormat: 4,
   }
 }
 
@@ -435,7 +439,7 @@ async function readPersisted(ctx, id) {
 }
 
 function sourceNotice(events) {
-  return events.find((item) => (item.data?.source ?? item.data?.message?.source)?.plugin === 'dsh-codex-handoff')
+  return events.find((item) => (item.data?.source ?? item.data?.message?.source)?.kind === 'plugin:dsh-codex-handoff')
 }
 
 async function exerciseGatewayLifecycle(normalizedSession, compiledSeed) {
@@ -461,6 +465,11 @@ async function exerciseGatewayLifecycle(normalizedSession, compiledSeed) {
       index = await createStorageDomainImportIndex(ctx.storageDomain)
       const unregisterPoison = registerPoisonReadTool(ctx, poison)
       const runtime = gatewayRuntime(ctx, handles, createCalls)
+      await assert.rejects(
+        ctx.sessionQuery.observeSession(SessionId('pinned-missing-session'), { projectionMode: 'none' }),
+        (error) => error?.code === 'SESSION_QUERY_SESSION_NOT_FOUND',
+        'v4 SessionQuery did not report its stable missing-session code',
+      )
       gateway = new DshSessionGateway(runtime, {
         index,
         fingerprint: async (request) => request.sourceFingerprint,
@@ -476,6 +485,7 @@ async function exerciseGatewayLifecycle(normalizedSession, compiledSeed) {
       const handle = handles[0]
       const session = handle.agent.session
       const events = session.snapshotEvents()
+      assert(!compiledSeed.some((event) => event.type === 'session/end-seed'), 'gateway input seed contains a constructor-owned end-seed')
       assert.equal(events.length, compiledSeed.length + 1, 'gateway create did not preserve seed plus exactly one end-seed')
       assert.deepEqual(events.slice(0, compiledSeed.length), compiledSeed, 'gateway create mutated compiled seed')
       assert.equal(events.at(-1)?.type, 'session/end-seed', 'gateway create missing end-seed')
@@ -484,6 +494,15 @@ async function exerciseGatewayLifecycle(normalizedSession, compiledSeed) {
       const notice = sourceNotice(events)
       const noticeSource = notice?.data?.source ?? notice?.data?.message?.source
       assert(noticeSource?.form === 'notice', 'gateway observation had no plugin-source notice')
+      const observation = await ctx.sessionQuery.observeSession(destinationId, { projectionMode: 'none' })
+      try {
+        assert.equal(observation.header.version, 4, 'SessionQuery header is not Session Format v4')
+        assert.equal(typeof observation.cursor, 'number', 'SessionQuery observation omitted its cursor')
+        assert(Array.isArray(observation.events), 'SessionQuery observation omitted its immutable event cut')
+        assert.equal(typeof observation[Symbol.dispose], 'function', 'SessionQuery observation is not disposable')
+      } finally {
+        observation[Symbol.dispose]()
+      }
       for (const [key, value] of Object.entries({
         summary: notice.data.source.summary,
         sourceSessionId: prepared.source.sessionId,

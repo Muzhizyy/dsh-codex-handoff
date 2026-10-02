@@ -12,7 +12,7 @@ const generatedRoot = resolve(repoRoot, 'packages', 'codex-handoff', 'generated'
 const configured = process.env.DSH_TYPERT_ARTIFACT_ROOT?.trim()
 export const names = ['remote.d.ts', 'remote.js', 'typert.d.ts', 'typert.js', 'typert.remote-client.d.ts.map']
 const execFileAsync = promisify(execFile)
-export const PINNED_SHA = 'd347e703908d0406b7a7ef80e3a0e594d86b2215'
+export const PINNED_SHA = '639ed015397290b3745d163aafe02ffee4aa3f84'
 
 async function stageArtifacts(artifactRoot, requireOfficialHeader) {
   for (const name of names) {
