@@ -4,6 +4,19 @@ Verification: 2026-10-02–03. Baseline: `dff7d29`. Contract: `docs/2026-10-roun
 
 This report separates source review, automated checks, and empirical Desktop/Codex behavior. A source review is not a pass for an end-to-end gate. Synthetic and isolated homes only are in scope for destructive or write-bearing probes; the user's default Codex and DSH homes are out of scope.
 
+## 2026-10-03 subsequent runtime retest — not fully passed
+
+The user requested another actual runtime test after the original release acceptance. This run does **not** supersede the historical successful run below with another pass: the current installed Codex binary has changed.
+
+- Installed DSH Desktop CLI fresh-profile initialization and final-archive add/list/remove **passed**, exit 0, using the isolated `D:\Project\DSHP\.desktop-test\runtime-acceptance-ruJn0t` home. The plugin was removed from that test profile at the end; personal profiles were not used.
+- The real installed DSH `DomainFacility` fresh prepare, state claim, close/reopen and new-facility reload proof **passed**.
+- `scripts/verify-roundtrip.mjs --full`, using the same isolated synthetic Codex home/source documented below, **failed** with `CODEX_PROTOCOL_MISMATCH` during the Codex version probe, before the fork/injection dispatch. Real DSH creation/query and preview were reached, but this run did not complete the return path.
+- `resolveCodexBinary()` now resolves `C:\Program Files\WindowsApps\OpenAI.Codex_26.930.2377.0_x64__2p2nqsd0c76g0\app\resources\codex.exe`. Direct `--version` exited 0 and returned `codex-cli 0.159.0-alpha.12.1`. The product version guard requires at least `0.159.2` and parses this prerelease as numeric `0.159.0`, so it rejects the currently installed Desktop CLI.
+- A read-only capability diagnostic generated that executable's official stable JSON schema into an owned temporary directory. It exited 0 and included both `thread/fork` and `thread/inject_items`. Their presence alone does not prove request/response or persistence compatibility; the guard was not bypassed or modified.
+- Actual Electron window clicking remains **not run**: the available tool list did not expose the `node_repl` required by the installed computer-use skill. No alternative Windows UI automation or personal Desktop launch was performed.
+
+The final package SHA-256 remains `8d4047b2a570ee9f6b4462951072b2ab7e16959b187dbec866fda6cbcc2d2d98`. The next required implementation work is to validate the current prerelease protocol and make an evidence-backed compatibility decision, then rerun the complete return path. This testing request did not authorize silently weakening that check.
+
 ## Release risks found during source review
 
 The table retains historical failures so the review trail is clear. Each current status names the evidence that closed the finding; earlier red checks remain in the chronology below.
