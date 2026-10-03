@@ -4,6 +4,7 @@ import {
   AppServerFailure,
   connectCodexAppServerTransport,
   resumeResponse,
+  supportsPinnedProtocol,
   type JsonRpcTransport,
 } from '../../src/codex/app-server.js'
 
@@ -30,6 +31,27 @@ function initialized(home: string, patch: Record<string, unknown> = {}) {
 }
 
 describe('official Codex app-server transport', () => {
+  it.each([
+    ['codex-cli 0.159.0-alpha.12.1', true],
+    ['0.159.0-alpha.12.1', true],
+    ['codex-cli 0.159.2', true],
+    ['0.159.3', true],
+    ['0.160.0', true],
+    ['codex 1.0.0', true],
+    ['codex-cli 0.159.0', false],
+    ['codex-cli 0.159.1', false],
+    ['codex-cli 0.159.0-alpha.12', false],
+    ['codex-cli 0.159.0-alpha.12.2', false],
+    ['codex-cli 0.159.0-alpha.12.99', false],
+    ['codex-cli 0.159.0-beta.12.1', false],
+    ['junk codex-cli 0.159.2', false],
+    ['codex-cli build 0.159.2', false],
+    ['codex-cli 0.159.0-alpha.12.1 extra', false],
+    ['', false],
+  ])('accepts only verified version output %j', (output, expected) => {
+    expect(supportsPinnedProtocol(output)).toBe(expected)
+  })
+
   it('falls back from a dead daemon proxy to an isolated stdio server before any thread RPC', async () => {
     const proxy = new FakeTransport(async method => {
       if (method === 'initialize') throw new AppServerFailure({ sent: false, remote: false, method })

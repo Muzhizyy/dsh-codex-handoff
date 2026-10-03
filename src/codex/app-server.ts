@@ -221,14 +221,17 @@ export function resumeResponse(binary: string, forkId: string, platform: NodeJS.
   }
 }
 
-function parseVersion(output: string): [number, number, number] | undefined {
-  const match = output.match(/(?:codex(?:-cli)?\s+)?(\d+)\.(\d+)\.(\d+)/i)
-  if (match === undefined || match === null) return undefined
-  return [Number(match[1]), Number(match[2]), Number(match[3])]
-}
+export function supportsPinnedProtocol(output: string): boolean {
+  const match = output.match(/^\s*(?:codex(?:-cli)?\s+)?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?\s*$/i)
+  if (match === null) return false
 
-function supportsPinnedProtocol(version: readonly number[]): boolean {
-  const [major = 0, minor = 0, patch = 0] = version
+  const major = Number(match[1])
+  const minor = Number(match[2])
+  const patch = Number(match[3])
+  if (![major, minor, patch].every(Number.isSafeInteger)) return false
+
+  const prerelease = match[4]
+  if (prerelease !== undefined) return match[1] === '0' && match[2] === '159' && match[3] === '0' && prerelease === 'alpha.12.1'
   return major > 0 || minor > 159 || (minor === 159 && patch >= 2)
 }
 
@@ -243,8 +246,8 @@ function processEnvironment(options: CodexAppServerOptions): NodeJS.ProcessEnv {
 }
 
 async function probeVersion(binary: string, env: NodeJS.ProcessEnv): Promise<void> {
-  const version = await runVersion(binary, env)
-  if (version === undefined || !supportsPinnedProtocol(version)) {
+  const versionOutput = await runVersion(binary, env)
+  if (versionOutput === undefined || !supportsPinnedProtocol(versionOutput)) {
     throw failure('CODEX_PROTOCOL_MISMATCH', 'The installed Codex version is outside the verified app-server protocol range.')
   }
 }
@@ -309,7 +312,7 @@ async function runBoundedProcess(binary: string, args: readonly string[], env: N
   })
 }
 
-async function runVersion(binary: string, env: NodeJS.ProcessEnv): Promise<[number, number, number] | undefined> {
+async function runVersion(binary: string, env: NodeJS.ProcessEnv): Promise<string | undefined> {
   return await new Promise(resolve => {
     let child: ChildProcess
     try {
@@ -326,7 +329,7 @@ async function runVersion(binary: string, env: NodeJS.ProcessEnv): Promise<[numb
     child.once('error', () => { clearTimeout(timer); resolve(undefined) })
     child.once('close', code => {
       clearTimeout(timer)
-      resolve(code === 0 ? parseVersion(output) : undefined)
+      resolve(code === 0 ? output.trim() : undefined)
     })
   })
 }
