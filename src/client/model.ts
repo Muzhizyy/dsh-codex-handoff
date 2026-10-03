@@ -16,7 +16,7 @@ import type {
   SmartPreview,
 } from '../shared/types.js'
 import { consentFor, isConsentValid, type ConsentSelection } from './consent.js'
-import { sessionIds, type ClientSessions, type SessionId } from './types.js'
+import { sessionIds, type ClientSessions, type ClientUiWorkspace, type SessionId } from './types.js'
 
 export type ClientPhase = 'closed' | 'browsing' | 'previewing' | 'ready' | 'analyzing' | 'creating' | 'created' | 'cancelled' | 'error'
 export type FocusTarget = 'search' | 'results' | 'preview' | 'mode' | 'consent' | 'create'
@@ -74,6 +74,7 @@ export type StateListener = (state: HandoffClientState) => void
 const DEFAULT_QUERY = DiscoverRequestSchema.parse({})
 const DEFAULT_TARGET_TOKENS = BUDGET_LIMITS.defaultTargetTokens
 const KNOWN_CODES = new Set<string>(ERROR_CODES)
+const SESSION_OPEN_RETRY_MESSAGE = 'Session created but could not be opened. Retry opening it.'
 
 function errorFrom(value: unknown, fallback: ErrorCode = 'INTERNAL'): ClientUiError {
   const candidate = value !== null && typeof value === 'object' ? value as { code?: unknown; message?: unknown; recoverable?: unknown } : {}
@@ -150,7 +151,12 @@ export class HandoffClientModel {
   private createPromise: Promise<CreateOutcome | undefined> | undefined
   private creatingReturnState: HandoffClientState | undefined
 
-  constructor(private readonly remote: CodexHandoffRemote, private readonly sessions: ClientSessions, options: HandoffClientModelOptions = {}) {
+  constructor(
+    private readonly remote: CodexHandoffRemote,
+    private readonly sessions: ClientSessions,
+    private readonly uiWorkspace: ClientUiWorkspace,
+    options: HandoffClientModelOptions = {},
+  ) {
     this.debounceMs = options.debounceMs ?? 250
     this.now = options.now ?? (() => Date.now())
     this.membershipRetries = Math.max(1, Math.min(5, Math.trunc(options.membershipRetries ?? 3)))
@@ -213,6 +219,14 @@ export class HandoffClientModel {
     // dialog in its busy state and makes every primary action look inert.
     this.setState({ error: uiError, phase, searchPending: false })
     return uiError
+  }
+
+  private sessionOpenError(): ClientUiError {
+    return { code: 'SESSION_NOT_VISIBLE', message: SESSION_OPEN_RETRY_MESSAGE, recoverable: true }
+  }
+
+  private setSessionOpenError(): void {
+    this.setOperationError(this.sessionOpenError())
   }
 
   async open(): Promise<void> {
@@ -598,12 +612,16 @@ export class HandoffClientModel {
 
   create(): Promise<CreateOutcome | undefined> {
     if (this.createPromise !== undefined) return this.createPromise
-    this.createPromise = this.performCreate()
+    if (this.state.outcome !== undefined) {
+      if (this.state.phase === 'created') return Promise.resolve(this.state.outcome)
+      this.createPromise = this.retryOpen()
+    } else this.createPromise = this.performCreate()
     return this.createPromise
   }
 
   private async performCreate(): Promise<CreateOutcome | undefined> {
     let operationId: number | undefined
+    let outcome: CreateOutcome | undefined
     try {
       await this.ensureCompatible()
       const request = this.buildCreateRequest()
@@ -612,20 +630,20 @@ export class HandoffClientModel {
       operationId = id
       this.creatingReturnState = this.state
       this.setState({ phase: 'creating', error: undefined, focus: 'create' })
-      const outcome = await this.remote.create(request, controller.signal)
+      outcome = await this.remote.create(request, controller.signal)
       if (controller.signal.aborted || id !== this.operationId) return undefined
       this.setState({ outcome })
       const visible = await this.refreshUntilVisible(outcome.sessionId, controller.signal)
       if (controller.signal.aborted || id !== this.operationId) return undefined
       if (!visible) {
-        this.setOperationError({ code: 'SESSION_NOT_VISIBLE', message: '', recoverable: true })
+        this.setSessionOpenError()
         return outcome
       }
       // Membership proves the destination session exists, regardless of
       // whether workspace attachment completed. Open it exactly once; an
       // unattached result keeps this overlay alive so its warning can be read
       // and explicitly dismissed.
-      this.sessions.open(outcome.sessionId as SessionId)
+      this.uiWorkspace.openSession(outcome.sessionId as SessionId)
       if (outcome.state === 'created_unattached') {
         this.setState({ outcome, phase: 'created', error: undefined, focus: 'create' })
       } else {
@@ -636,7 +654,11 @@ export class HandoffClientModel {
       return outcome
     } catch (error) {
       if (error instanceof Error && error.message === 'incompatible') return undefined
-      if (this.activeController?.signal.aborted) return undefined
+      if (operationId !== undefined && (operationId !== this.operationId || this.activeController?.signal.aborted)) return undefined
+      if (this.state.outcome !== undefined) {
+        this.setSessionOpenError()
+        return this.state.outcome
+      }
       this.setOperationError(error)
       return undefined
     } finally {
@@ -691,10 +713,7 @@ export class HandoffClientModel {
   }
 
   async retry(): Promise<CreateOutcome | undefined> {
-    if (this.state.outcome?.state === 'created_unattached' && this.state.error?.code === 'SESSION_NOT_VISIBLE') {
-      return this.retryOpen()
-    }
-    if (this.state.error?.code === 'SESSION_NOT_VISIBLE' && this.state.outcome !== undefined) return this.retryOpen()
+    if (this.state.error?.code === 'SESSION_NOT_VISIBLE' && this.state.outcome !== undefined) return this.create()
     // Retry the stage that produced the visible error. A discovery failure has
     // no selected source, while a preview failure has no accepted preview yet.
     // Falling through to create in either state is a silent no-op because no
@@ -729,10 +748,10 @@ export class HandoffClientModel {
       const visible = await this.refreshUntilVisible(outcome.sessionId, controller.signal)
       if (controller.signal.aborted || id !== this.operationId) return undefined
       if (!visible) {
-        this.setOperationError({ code: 'SESSION_NOT_VISIBLE', message: '', recoverable: true })
+        this.setSessionOpenError()
         return outcome
       }
-      this.sessions.open(outcome.sessionId as SessionId)
+      this.uiWorkspace.openSession(outcome.sessionId as SessionId)
       if (outcome.state === 'created_unattached') {
         this.setState({ phase: 'created', error: undefined, focus: 'create' })
       } else {
@@ -740,10 +759,11 @@ export class HandoffClientModel {
       }
       return outcome
     } catch (error) {
-      if (isAbort(error, controller.signal)) return outcome
-      this.setOperationError(error)
+      if (isAbort(error, controller.signal) || id !== this.operationId) return outcome
+      this.setSessionOpenError()
       return outcome
     } finally {
+      if (this.createPromise !== undefined) this.createPromise = undefined
       this.finishOperation(id)
     }
   }
@@ -751,13 +771,15 @@ export class HandoffClientModel {
   cancel(): void {
     if (this.state.phase === 'creating' && this.creatingReturnState !== undefined) {
       const prior = this.creatingReturnState
+      const acknowledgedOutcome = this.state.outcome
       this.creatingReturnState = undefined
       this.abortActive()
       this.clearSearchTimer()
-      // Creating has a cancel-only control. Restore the exact pre-create
-      // browse/ready state instead of claiming that the destination was
-      // closed or leaving a misleading terminal "cancelled" screen.
-      this.setState({ ...prior, searchPending: false, error: undefined })
+      // Before the remote acknowledges creation, restore the browse/ready
+      // state. After acknowledgement, keep the outcome for an open-only retry.
+      this.setState(acknowledgedOutcome === undefined
+        ? { ...prior, searchPending: false, error: undefined }
+        : { ...prior, outcome: acknowledgedOutcome, phase: 'error', searchPending: false, error: this.sessionOpenError() })
       return
     }
     this.abortActive()

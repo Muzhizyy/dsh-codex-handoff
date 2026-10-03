@@ -5,7 +5,7 @@ import { consentFor } from '../../src/client/consent.js'
 import { previewFor, FakeRemote, FakeSessions, session } from '../fixtures/client/remote.js'
 
 async function prepared(remote = new FakeRemote(), sessions = new FakeSessions()): Promise<{ model: HandoffClientModel; remote: FakeRemote; sessions: FakeSessions }> {
-  const model = new HandoffClientModel(remote, sessions, { debounceMs: 25 })
+  const model = new HandoffClientModel(remote, sessions, sessions.navigation, { debounceMs: 25 })
   await model.open()
   model.select(session)
   await model.previewSelected()
@@ -17,7 +17,7 @@ describe('Codex handoff client state machine', () => {
   it('opens through compatibility, discovers, and defaults to model Smart', async () => {
     const remote = new FakeRemote()
     const sessions = new FakeSessions()
-    const model = new HandoffClientModel(remote, sessions)
+    const model = new HandoffClientModel(remote, sessions, sessions.navigation)
     await model.open()
 
     expect(model.getState().phase).toBe('browsing')
@@ -50,7 +50,8 @@ describe('Codex handoff client state machine', () => {
   it('fails closed when compatibility is not available', async () => {
     const remote = new FakeRemote()
     remote.compatibilityView = { ...remote.compatibilityView, compatible: false }
-    const model = new HandoffClientModel(remote, new FakeSessions())
+    const sessions = new FakeSessions()
+    const model = new HandoffClientModel(remote, sessions, sessions.navigation)
     await model.open()
     expect(model.getState().phase).toBe('error')
     expect(model.getState().error?.code).toBe('DSH_INCOMPATIBLE')
@@ -61,7 +62,8 @@ describe('Codex handoff client state machine', () => {
     vi.useFakeTimers()
     try {
       const remote = new FakeRemote()
-      const model = new HandoffClientModel(remote, new FakeSessions(), { debounceMs: 100 })
+      const sessions = new FakeSessions()
+      const model = new HandoffClientModel(remote, sessions, sessions.navigation, { debounceMs: 100 })
       const first = model.search('one')
       const second = model.search('two')
       await vi.advanceTimersByTimeAsync(100)
@@ -76,7 +78,8 @@ describe('Codex handoff client state machine', () => {
 
   it('loads the next remote cursor without dropping the first page', async () => {
     const remote = new FakeRemote()
-    const model = new HandoffClientModel(remote, new FakeSessions())
+    const sessions = new FakeSessions()
+    const model = new HandoffClientModel(remote, sessions, sessions.navigation)
     await model.open()
     const page = await model.loadMore()
     expect(page?.items).toHaveLength(2)
@@ -94,7 +97,8 @@ describe('Codex handoff client state machine', () => {
       }
       return originalDiscover(request, signal)
     }
-    const model = new HandoffClientModel(remote, new FakeSessions())
+    const sessions = new FakeSessions()
+    const model = new HandoffClientModel(remote, sessions, sessions.navigation)
 
     await model.open()
 
@@ -111,7 +115,7 @@ describe('Codex handoff client state machine', () => {
   it('refuses preview without an absolute cwd and refuses create when cwd disappeared', async () => {
     const remote = new FakeRemote()
     const sessions = new FakeSessions()
-    const model = new HandoffClientModel(remote, sessions)
+    const model = new HandoffClientModel(remote, sessions, sessions.navigation)
     model.select({ ...session, cwd: undefined })
     await model.previewSelected()
     expect(model.getState().error?.code).toBe('CWD_REQUIRED')
@@ -227,6 +231,93 @@ describe('Codex handoff client state machine', () => {
     expect(sessions.opened).toEqual(['dsh-session-1'])
   })
 
+  it('keeps a successful create when session refresh throws and retries without creating again', async () => {
+    const remote = new FakeRemote()
+    const sessions = new FakeSessions()
+    const refresh = sessions.refresh.bind(sessions)
+    let failRefresh = true
+    sessions.refresh = async () => {
+      if (failRefresh) {
+        sessions.refreshCalls += 1
+        throw new Error('session refresh failed')
+      }
+      await refresh()
+    }
+    const { model } = await prepared(remote, sessions)
+
+    const outcome = await model.create()
+    expect(outcome?.sessionId).toBe('dsh-session-1')
+    expect(model.getState().outcome).toEqual(outcome)
+    expect(model.getState().error).toMatchObject({
+      code: 'SESSION_NOT_VISIBLE',
+      message: 'Session created but could not be opened. Retry opening it.',
+      recoverable: true,
+    })
+    expect(sessions.navigation.openCalls).toEqual([])
+
+    failRefresh = false
+    await model.retry()
+    expect(remote.createCalls).toBe(1)
+    expect(sessions.navigation.opened).toEqual(['dsh-session-1'])
+  })
+
+  it('keeps a successful create when session navigation throws and retries opening the saved outcome', async () => {
+    const remote = new FakeRemote()
+    const sessions = new FakeSessions()
+    sessions.navigation.failure = new Error('navigation failed')
+    const { model } = await prepared(remote, sessions)
+
+    const outcome = await model.create()
+    expect(outcome?.sessionId).toBe('dsh-session-1')
+    expect(model.getState().outcome).toEqual(outcome)
+    expect(model.getState().error?.code).toBe('SESSION_NOT_VISIBLE')
+    expect(sessions.navigation.openCalls).toEqual(['dsh-session-1'])
+
+    await model.create()
+    expect(model.getState().error?.code).toBe('SESSION_NOT_VISIBLE')
+    expect(remote.createCalls).toBe(1)
+    expect(sessions.navigation.openCalls).toEqual(['dsh-session-1', 'dsh-session-1'])
+
+    sessions.navigation.failure = undefined
+    const finalRetry = model.create()
+    expect(model.create()).toBe(finalRetry)
+    await finalRetry
+    expect(remote.createCalls).toBe(1)
+    expect(sessions.navigation.openCalls).toEqual(['dsh-session-1', 'dsh-session-1', 'dsh-session-1'])
+    expect(sessions.navigation.opened).toEqual(['dsh-session-1'])
+  })
+
+  it('reopens the saved outcome from create after a setting change clears the open error', async () => {
+    const remote = new FakeRemote()
+    const sessions = new FakeSessions()
+    sessions.navigation.failure = new Error('navigation failed')
+    const { model } = await prepared(remote, sessions)
+    const outcome = await model.create()
+    expect(model.getState().error?.code).toBe('SESSION_NOT_VISIBLE')
+
+    model.setMode('full')
+    expect(model.getState().error).toBeUndefined()
+    expect(model.getState().outcome).toEqual(outcome)
+    sessions.navigation.failure = undefined
+    await model.create()
+
+    expect(remote.createCalls).toBe(1)
+    expect(sessions.navigation.opened).toEqual(['dsh-session-1'])
+  })
+
+  it('returns a successfully opened unattached outcome without creating or navigating again', async () => {
+    const remote = new FakeRemote()
+    remote.createOutcome = { state: 'created_unattached', sessionId: 'dsh-session-1', workspaceAttached: false, warnings: [] }
+    const sessions = new FakeSessions()
+    const { model } = await prepared(remote, sessions)
+    const outcome = await model.create()
+    expect(model.getState().phase).toBe('created')
+
+    await expect(model.create()).resolves.toEqual(outcome)
+    expect(remote.createCalls).toBe(1)
+    expect(sessions.navigation.openCalls).toEqual(['dsh-session-1'])
+  })
+
   it('retryOpen opens an unattached visible session once and keeps the warning overlay', async () => {
     const remote = new FakeRemote()
     remote.createOutcome = { state: 'created_unattached', sessionId: 'dsh-session-1', workspaceAttached: false, warnings: [{ code: 'WORKSPACE_ATTACH_PENDING', severity: 'warning', message: 'workspace attach pending', recoverable: true }] }
@@ -284,5 +375,46 @@ describe('Codex handoff client state machine', () => {
     expect(model.getState().error).toBeUndefined()
     release()
     await pending
+    expect(sessions.navigation.openCalls).toEqual([])
+  })
+
+  it('keeps an acknowledged create when cancelled during refresh and retries only opening it', async () => {
+    const remote = new FakeRemote()
+    const sessions = new FakeSessions()
+    let finishRefresh!: () => void
+    let markRefreshStarted!: () => void
+    const refreshGate = new Promise<void>(resolve => { finishRefresh = resolve })
+    const refreshStarted = new Promise<void>(resolve => { markRefreshStarted = resolve })
+    const refresh = sessions.refresh.bind(sessions)
+    let gateFirstRefresh = true
+    sessions.refresh = async () => {
+      if (gateFirstRefresh) {
+        gateFirstRefresh = false
+        markRefreshStarted()
+        await refreshGate
+      }
+      await refresh()
+    }
+    const { model } = await prepared(remote, sessions)
+    const pending = model.create()
+    await refreshStarted
+    expect(model.getState().outcome?.sessionId).toBe('dsh-session-1')
+
+    model.cancel()
+    finishRefresh()
+    await pending
+
+    expect(remote.createCalls).toBe(1)
+    expect(model.getState()).toMatchObject({
+      phase: 'error',
+      outcome: remote.createOutcome,
+      error: { code: 'SESSION_NOT_VISIBLE', message: 'Session created but could not be opened. Retry opening it.' },
+    })
+    expect(sessions.navigation.openCalls).toEqual([])
+
+    await model.create()
+    expect(remote.createCalls).toBe(1)
+    expect(sessions.navigation.openCalls).toEqual(['dsh-session-1'])
+    expect(sessions.navigation.opened).toEqual(['dsh-session-1'])
   })
 })

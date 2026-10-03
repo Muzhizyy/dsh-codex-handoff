@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { apply } from '../../src/client/apply.js'
+import { apply, inject } from '../../src/client/apply.js'
 import { ReturnHeaderAction } from '../../src/client/return-components.js'
 import { localeParity, NS } from '../../src/client/locales.js'
 import { adaptCodexHandoffRemote, codexHandoffRemote } from '../../src/client/remote.js'
@@ -69,6 +69,7 @@ describe('official-shaped client slot adapter', () => {
     const context: ClientContext = {
       remote: fakeRemote,
       sessions: new FakeSessions(),
+      uiWorkspace: new FakeSessions().navigation,
       locale: {
         register: (_namespace, dictionaries) => {
           locale = dictionaries
@@ -102,6 +103,7 @@ describe('official-shaped client slot adapter', () => {
     const context: ClientContext = {
       remote: fakeRemote,
       sessions: new FakeSessions(),
+      uiWorkspace: new FakeSessions().navigation,
       locale: {
         register: () => undefined,
         bind: () => (key: string) => key,
@@ -123,6 +125,7 @@ describe('official-shaped client slot adapter', () => {
     await apply(context)
 
     expect(codexHandoffRemote.descriptors).toHaveLength(7)
+    expect(inject).toContain('uiWorkspace')
     expect(fakeRemote.mounts).toEqual([codexHandoffRemote])
     expect(injections).toEqual(['sidebar.footer.action', 'shell.overlay', 'conversation.session.header.utilities'])
 
@@ -163,7 +166,9 @@ describe('official-shaped client slot adapter', () => {
   it('reads the mounted namespace only inside its exact Cordis injection scope', async () => {
     const mountedRemote = new MountingRemote()
     let namespaceInjected = false
+    let uiWorkspaceInjected = false
     let injectedDependencies: readonly string[] = []
+    const sessions = new FakeSessions()
     const guardedRemote: ClientContext['remote'] = {
       $mount: contribution => mountedRemote.$mount(contribution),
       get codexHandoff() {
@@ -173,7 +178,11 @@ describe('official-shaped client slot adapter', () => {
     }
     const context: ClientContext = {
       remote: guardedRemote,
-      sessions: new FakeSessions(),
+      sessions,
+      get uiWorkspace() {
+        if (!uiWorkspaceInjected) throw new Error('cannot get property "uiWorkspace" without inject')
+        return sessions.navigation
+      },
       locale: {
         register: () => undefined,
         bind: () => key => key,
@@ -187,13 +196,17 @@ describe('official-shaped client slot adapter', () => {
       inject: (dependencies, callback) => {
         injectedDependencies = dependencies
         namespaceInjected = dependencies.includes('remote.codexHandoff')
-        try { return callback(context) } finally { namespaceInjected = false }
+        uiWorkspaceInjected = dependencies.includes('uiWorkspace')
+        try { return callback(context) } finally {
+          namespaceInjected = false
+          uiWorkspaceInjected = false
+        }
       },
     }
 
     const dispose = await apply(context)
 
-    expect(injectedDependencies).toEqual(['sessions', 'remote', 'remote.codexHandoff', 'slots', 'locale'])
+    expect(injectedDependencies).toEqual(['sessions', 'remote', 'remote.codexHandoff', 'slots', 'locale', 'uiWorkspace'])
     await dispose()
     expect(mountedRemote.mountDisposeCalls).toBe(1)
   })
@@ -204,6 +217,7 @@ describe('official-shaped client slot adapter', () => {
     const context: ClientContext = {
       remote,
       sessions: new FakeSessions(),
+      uiWorkspace: new FakeSessions().navigation,
       locale: {
         register: () => () => { calls.push('locale') },
         bind: () => key => key,
@@ -241,6 +255,7 @@ describe('official-shaped client slot adapter', () => {
     const context: ClientContext = {
       remote,
       sessions: new FakeSessions(),
+      uiWorkspace: new FakeSessions().navigation,
       locale: {
         register: () => () => undefined,
         bind: () => key => key,
@@ -268,6 +283,7 @@ describe('official-shaped client slot adapter', () => {
     const context: ClientContext = {
       remote,
       sessions: new FakeSessions(),
+      uiWorkspace: new FakeSessions().navigation,
       locale: {
         register: () => () => undefined,
         bind: () => key => key,

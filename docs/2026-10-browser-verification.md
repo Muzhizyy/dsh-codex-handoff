@@ -2,6 +2,8 @@
 
 Date: 2026-10-03. Main ran the installed DeepSeek Harness 0.2.0-rc.2 Web profile with its actual packed plugin, real Chrome 154 headless, and real plugin RPCs. No responses were mocked. This is browser UI verification, not native Electron-window verification.
 
+This is historical failure evidence. The subsequent repair and successful real-browser Full/return verification are recorded in [the navigation repair report](./2026-10-full-navigation-fix.md); the archive hash below identifies the older failing build, not the repaired archive at the same filename.
+
 Archive: `artifacts/dsh-codex-handoff-0.2.0-rc.2.tgz`, SHA-256 `631f29fa6cb0707b3d35b2cb802f16a5c6bcc676c211e6d6ef190db8309de479`.
 
 ## Observed result

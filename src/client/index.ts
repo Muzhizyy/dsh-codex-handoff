@@ -14,4 +14,4 @@ export type {
   HandoffClientState,
   StateListener,
 } from './model.js'
-export type { ClientContext, ClientLocale, ClientRemote, ClientRemoteContribution, ClientSessionListSnapshot, ClientSessions, ClientSlots, LocaleSeat, SessionId } from './types.js'
+export type { ClientContext, ClientLocale, ClientRemote, ClientRemoteContribution, ClientSessionListSnapshot, ClientSessions, ClientSlots, ClientUiWorkspace, LocaleSeat, SessionId } from './types.js'

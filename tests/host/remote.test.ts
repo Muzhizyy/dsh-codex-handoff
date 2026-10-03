@@ -250,7 +250,8 @@ describe('CodexHandoffRemoteService', () => {
         engine: new SmartHandoffEngine(),
         gateway: hostGateway,
       })
-      const model = new HandoffClientModel(remote, new FakeSessions())
+      const sessions = new FakeSessions()
+      const model = new HandoffClientModel(remote, sessions, sessions.navigation)
       await model.open()
       const selected = model.getState().page?.items[0]
       if (selected === undefined || selected.cwd === undefined) throw new Error('redacted source cwd was not discovered')

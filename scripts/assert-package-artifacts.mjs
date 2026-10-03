@@ -79,10 +79,11 @@ const expectedInject = [
   '@deepseek-ai/dsh-client-ui-renderer',
   '@deepseek-ai/dsh-client-ui-layout',
   '@deepseek-ai/dsh-client-ui-sidebar',
+  '@deepseek-ai/dsh-client-ui-workspace',
 ]
 const inject = packageJson.dsh?.client?.inject
 if (JSON.stringify(inject) !== JSON.stringify(expectedInject)) {
-  throw new Error(`dsh.client.inject must be the official six-package list: ${JSON.stringify(expectedInject)}`)
+  throw new Error(`dsh.client.inject must be the official seven-package list: ${JSON.stringify(expectedInject)}`)
 }
 
 function collectExportTargets(value, prefix = '') {

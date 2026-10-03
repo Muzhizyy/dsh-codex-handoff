@@ -5,7 +5,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { HandoffAction, HandoffOverlay } from '../../src/client/components.js'
 import { HandoffClientModel } from '../../src/client/model.js'
 import { en, zh } from '../../src/client/locales.js'
-import { FakeRemote, FakeSessions, session } from '../fixtures/client/remote.js'
+import { FakeRemote, FakeSessions, FakeUiWorkspace, session } from '../fixtures/client/remote.js'
 import type { SmartPreview } from '../../src/shared/types.js'
 
 // F0 supplies jsdom as the root test dependency; this is a real document,
@@ -40,7 +40,8 @@ describe('Codex handoff React slot components', () => {
     let release!: () => void
     const gate = new Promise<void>(resolve => { release = resolve })
     remote.compatibility = () => gate.then(() => remote.compatibilityView)
-    const model = new HandoffClientModel(remote, new FakeSessions())
+    const sessions = new FakeSessions()
+    const model = new HandoffClientModel(remote, sessions, sessions.navigation)
     const { act, render, screen, waitFor } = rtl!
     render(React.createElement(HandoffOverlay, { model, titleKey: 'title', onKey: key => model.keyboard(key) }))
     let opening!: Promise<void>
@@ -52,7 +53,8 @@ describe('Codex handoff React slot components', () => {
   })
 
   it('opens from the sidebar action, traps Escape, and restores focus', async () => {
-    const model = new HandoffClientModel(new FakeRemote(), new FakeSessions())
+    const sessions = new FakeSessions()
+    const model = new HandoffClientModel(new FakeRemote(), sessions, sessions.navigation)
     const anchor = document.createElement('button')
     anchor.textContent = 'anchor'
     document.body.append(anchor)
@@ -76,7 +78,7 @@ describe('Codex handoff React slot components', () => {
   it('renders mode privacy copy and ignores a duplicate create click', async () => {
     const remote = new FakeRemote()
     const sessions = new FakeSessions()
-    const model = new HandoffClientModel(remote, sessions)
+    const model = new HandoffClientModel(remote, sessions, sessions.navigation)
     const { act, fireEvent, render, screen, waitFor } = rtl!
     let releaseCreate = (): void => undefined
     const createGate = new Promise<void>(resolve => { releaseCreate = resolve })
@@ -115,9 +117,29 @@ describe('Codex handoff React slot components', () => {
     expect(vi.isMockFunction(model.create)).toBe(false)
   })
 
+  it('shows a generic internal error for a failed Full create', async () => {
+    const remote = new FakeRemote()
+    remote.createShouldFail = true
+    const sessions = new FakeSessions()
+    const model = new HandoffClientModel(remote, sessions, sessions.navigation)
+    const { act, render, screen, waitFor } = rtl!
+    render(React.createElement(HandoffOverlay, { model, titleKey: 'title', onKey: key => model.keyboard(key) }))
+    await act(async () => {
+      await model.open()
+      model.select(session)
+      await model.previewSelected()
+      model.setMode('full')
+      model.acceptConsent()
+      await model.create()
+    })
+    await waitFor(() => expect(screen.getByText(en.internalError)).toBeTruthy())
+    expect(screen.getByText(en.internalError).textContent).not.toMatch(/Smart/i)
+    expect(remote.createCalls).toBe(1)
+  })
+
   it('renders SPEC13 row/preview fields and reacts to the official locale seat', async () => {
     const remote = new FakeRemote()
-    const model = new HandoffClientModel(remote, new FakeSessions())
+    const model = new HandoffClientModel(remote, new FakeSessions(), new FakeUiWorkspace())
     let language: 'en' | 'zh' = 'en'
     const listeners = new Set<() => void>()
     const locale = {
@@ -144,7 +166,7 @@ describe('Codex handoff React slot components', () => {
   it('supports ArrowUp/ArrowDown and Enter result selection', async () => {
     const remote = new FakeRemote()
     remote.page = { ...remote.page, items: [session, { ...session, sessionId: 'session-2', discoveryId: 'discovery-2', title: 'Second source' }] }
-    const model = new HandoffClientModel(remote, new FakeSessions())
+    const model = new HandoffClientModel(remote, new FakeSessions(), new FakeUiWorkspace())
     const { act, fireEvent, render, screen, waitFor } = rtl!
     render(React.createElement(HandoffOverlay, { model, titleKey: 'title', onKey: key => model.keyboard(key) }))
     await act(async () => { await model.open() })
@@ -163,7 +185,7 @@ describe('Codex handoff React slot components', () => {
 
   it('previews on selection and exposes an uncapped default with an optional custom budget', async () => {
     const remote = new FakeRemote()
-    const model = new HandoffClientModel(remote, new FakeSessions())
+    const model = new HandoffClientModel(remote, new FakeSessions(), new FakeUiWorkspace())
     const { act, fireEvent, render, screen, waitFor } = rtl!
     render(React.createElement(HandoffOverlay, { model, titleKey: 'title', onKey: key => model.keyboard(key) }))
     await act(async () => { await model.open() })
@@ -189,7 +211,7 @@ describe('Codex handoff React slot components', () => {
   it('renders capability, partial-index, and repository facts from their official sources', async () => {
     const remote = new FakeRemote()
     remote.page = { ...remote.page, items: [{ ...session, parseHealth: 'partial' }] }
-    const model = new HandoffClientModel(remote, new FakeSessions())
+    const model = new HandoffClientModel(remote, new FakeSessions(), new FakeUiWorkspace())
     const { act, render, screen, waitFor } = rtl!
     render(React.createElement(HandoffOverlay, { model, titleKey: 'title', onKey: key => model.keyboard(key) }))
     await act(async () => { await model.open() })
@@ -225,7 +247,7 @@ describe('Codex handoff React slot components', () => {
       context: { text: 'context', source: { plugin: 'codex', sourceSessionId: session.sessionId, sourceRolloutRevisionId: session.rolloutRevisionId, fingerprint: session.fingerprint, mode: 'smart', compilerSchema: 'v2', summary: 'context' }, estimatedTokens: 12, estimator: 'fallback', omittedByBudget: {}, diagnostics: [] },
       degraded: false, diagnostics: [],
     } as unknown as SmartPreview
-    const model = new HandoffClientModel(remote, new FakeSessions())
+    const model = new HandoffClientModel(remote, new FakeSessions(), new FakeUiWorkspace())
     const { act, fireEvent, render, screen, waitFor } = rtl!
     render(React.createElement(HandoffOverlay, { model, titleKey: 'title', onKey: key => model.keyboard(key) }))
     await act(async () => { await model.open(); model.select(session); await model.previewSelected() })
@@ -247,7 +269,7 @@ describe('Codex handoff React slot components', () => {
       remote.analyzeRequests.push(request)
       throw { code: 'SMART_CONTEXT_CANNOT_FIT', message: 'The handoff operation failed unexpectedly.', recoverable: true }
     }
-    const model = new HandoffClientModel(remote, new FakeSessions())
+    const model = new HandoffClientModel(remote, new FakeSessions(), new FakeUiWorkspace())
     const { act, render, screen, waitFor } = rtl!
     render(React.createElement(HandoffOverlay, { model, titleKey: 'title', language: 'zh', onKey: key => model.keyboard(key) }))
     await act(async () => {
@@ -264,7 +286,7 @@ describe('Codex handoff React slot components', () => {
   })
 
   it('does not capture list navigation from search or archive controls', async () => {
-    const model = new HandoffClientModel(new FakeRemote(), new FakeSessions())
+    const model = new HandoffClientModel(new FakeRemote(), new FakeSessions(), new FakeUiWorkspace())
     const { act, fireEvent, render, screen, waitFor } = rtl!
     render(React.createElement(HandoffOverlay, { model, titleKey: 'title', onKey: key => model.keyboard(key) }))
     await act(async () => { await model.open() })
@@ -282,7 +304,7 @@ describe('Codex handoff React slot components', () => {
     const remote = new FakeRemote()
     remote.createOutcome = { state: 'created_unattached', sessionId: 'dsh-session-1', workspaceAttached: false, warnings: [] }
     const sessions = new FakeSessions()
-    const model = new HandoffClientModel(remote, sessions)
+    const model = new HandoffClientModel(remote, sessions, sessions.navigation)
     const { act, fireEvent, render, screen, waitFor, within } = rtl!
     render(React.createElement(HandoffOverlay, { model, titleKey: 'title', onKey: key => model.keyboard(key) }))
     await act(async () => { await model.open(); model.select(session); await model.previewSelected(); model.setMode('full') })

@@ -42,6 +42,7 @@ try {
     '@deepseek-ai/dsh-client-ui-renderer',
     '@deepseek-ai/dsh-client-ui-layout',
     '@deepseek-ai/dsh-client-ui-sidebar',
+    '@deepseek-ai/dsh-client-ui-workspace',
   ]
   const dependencies = Object.fromEntries(officialClientPackages.map(name => [name, 'workspace:^']))
   await writeFile(join(workspacePackage, 'package.json'), JSON.stringify({

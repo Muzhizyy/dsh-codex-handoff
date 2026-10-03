@@ -82,7 +82,8 @@ function errorDetail(code: string | undefined, message: string | undefined): str
     || code === 'SOURCE_STALE'
     || code === 'SOURCE_CHANGED'
     || code === 'IMPORT_ID_CONFLICT'
-    || code === 'TRAJECTORY_CONFIRMATION_REQUIRED') return ''
+    || code === 'TRAJECTORY_CONFIRMATION_REQUIRED'
+    || code === 'SESSION_NOT_VISIBLE') return ''
   return `: ${safeText(message)}`
 }
 

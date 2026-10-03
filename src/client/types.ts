@@ -15,7 +15,10 @@ export interface ClientSessions {
   /** Official DSH ObservableSnapshot; the structural seam keeps this package independently buildable. */
   readonly list: { getSnapshot(): unknown; subscribe?(listener: () => void): () => void }
   refresh(): Promise<void>
-  open(id: SessionId): void
+}
+
+export interface ClientUiWorkspace {
+  openSession(id: SessionId): void
 }
 
 export interface ClientLocale {
@@ -60,6 +63,7 @@ export interface ClientContext {
   readonly locale: ClientLocale
   readonly remote: ClientRemote
   readonly sessions: ClientSessions
+  readonly uiWorkspace: ClientUiWorkspace
   /** Cordis dependency declaration seam used by official Client plugins. */
   readonly inject?: (dependencies: readonly string[], callback: (scope: ClientContext) => unknown) => unknown
   readonly effect?: (effect: () => void | (() => void) | Promise<void | (() => void | Promise<void>)>, label?: string) => unknown

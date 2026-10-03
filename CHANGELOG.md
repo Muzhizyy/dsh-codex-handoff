@@ -7,6 +7,7 @@
 - 增加显式、仅 fork 的 DSH→Codex 回传合同与 UI/Remote 路径：仅限可链接的导入 DSH session；源 thread 不变、回传不调用 LLM、不自动打开 fork；unknown 结果警告且不重试。
 - 完整回传决策与状态机见[增量 SPEC](./docs/2026-10-roundtrip-spec.md)及[实施计划](./docs/2026-10-roundtrip-plan.md)。已完成的[独立 verifier 的后续报告](./docs/2026-10-verification.md)记录了安装版 CLI 与隔离 DSH/Codex API 验收；Electron 窗口点击流程未运行。
 - 2026-10-03 的窄兼容修正：Codex app-server 版本筛选精确放行当前 Desktop CLI `0.159.0-alpha.12.1`，继续放行正式版 `0.159.2` 起；不放行其他预发布版。放行仍需实际 schema、Codex home 与 fork 来源核验，未来正式版符合版本筛选不代表均已实测。当前 alpha 的安装版 DSH 隔离完整回传已通过；此前被旧版本筛选拒绝的复测仍作为历史失败保留在[独立验证报告](./docs/2026-10-verification.md)。
+- 2026-10-03 的 Full 导入导航修正：通过官方 `uiWorkspace.openSession()` 打开已创建对话，不再调用已移除的 `sessions.open()`；打开失败后的重试复用原对话，不重复创建。通用错误提示不再误称 Smart 分析失败。修复合同与实际浏览器验收见[导航修复记录](./docs/2026-10-full-navigation-fix.md)。
 
 ## 0.1.0-alpha.1 — 2026-09-05
 

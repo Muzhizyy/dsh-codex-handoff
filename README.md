@@ -35,6 +35,8 @@ dsh plugin --profile desktop remove dsh-codex-handoff
 
 导入只经官方 DSH Agent API 创建可持久化 session，不写 Codex 源文件或物理 DSH JSONL。历史 tool 记录不会被重放。源变更要求重新预览；workspace attach 失败会显示 `created_unattached`，并保留可重试状态。
 
+创建成功后通过官方工作区导航打开新对话。如果对话已创建但暂时无法打开，界面会明确提示；重试只刷新并打开已创建的对话，不重复导入。Full 路径不会调用 Smart 分析模型。之前“创建成功但无法打开”的真实浏览器失败和后续修复验收分别见[失败报告](./docs/2026-10-browser-verification.md)与[导航修复记录](./docs/2026-10-full-navigation-fix.md)。
+
 ## 从 DSH 回传到 Codex
 
 回传只对插件权威索引中可链接到原 Codex source 的已导入 DSH session 提供，不接受任意会话、source id 或 Client 正文。`returnPreview` 从一个 DSH v4 observation cut 和权威 source/workspace 信息编译完整、脱敏上下文；用户确认后，`returnSync` 只创建持久化 Codex **fork**，并把上下文作为 user-role Responses item 注入该 fork。

@@ -7,7 +7,7 @@ import { ReturnHeaderAction, type ReturnHeaderInjected } from './return-componen
 import type { ClientContext, ClientLocale, ClientRemoteContribution } from './types.js'
 
 /** Dependencies follow the official Cordis client-plugin inject convention. */
-export const inject = ['slots', 'locale', 'remote', 'sessions'] as const
+export const inject = ['slots', 'locale', 'remote', 'sessions', 'uiWorkspace'] as const
 
 export interface HandoffActionFace extends Omit<HandoffActionProps, 'wide'> {
   readonly labelKey: LocaleKey
@@ -107,7 +107,7 @@ export async function apply(ctx: ClientContext, contribution: ClientRemoteContri
     const registerWithEffect = (scope: ClientContext): void | (() => Promise<void>) | Promise<void | (() => Promise<void>)> => {
       // `remote.codexHandoff` is a dynamically mounted Cordis service. Read it
       // only from the scope that explicitly injected that exact namespace.
-      const model = new HandoffClientModel(adaptCodexHandoffRemote(scope.remote.codexHandoff), scope.sessions)
+      const model = new HandoffClientModel(adaptCodexHandoffRemote(scope.remote.codexHandoff), scope.sessions, scope.uiWorkspace)
       track(() => model.dispose())
       const installScoped = (): (() => Promise<void>) => install(scope, model)
       if (scope.effect !== undefined) {
@@ -124,7 +124,7 @@ export async function apply(ctx: ClientContext, contribution: ClientRemoteContri
     // fallback keeps the local typed fixture usable while F0 wires the loader.
     if (ctx.inject !== undefined) {
       let callbackResult: Promise<unknown> | undefined
-      const injectionResult = ctx.inject(['sessions', 'remote', 'remote.codexHandoff', 'slots', 'locale'], (scope) => {
+      const injectionResult = ctx.inject(['sessions', 'remote', 'remote.codexHandoff', 'slots', 'locale', 'uiWorkspace'], (scope) => {
         const result = registerWithEffect(scope)
         callbackResult = Promise.resolve(result)
         return result

@@ -12,7 +12,7 @@ import type {
   ReturnSyncResponse,
   SmartPreview,
 } from '../../../src/shared/types.js'
-import type { ClientRemoteContribution, ClientSessionListSnapshot, ClientSessions, SessionId } from '../../../src/client/types.js'
+import type { ClientRemoteContribution, ClientSessionListSnapshot, ClientSessions, ClientUiWorkspace, SessionId } from '../../../src/client/types.js'
 
 export const session: ExternalSessionSummary = {
   discoveryId: 'discovery-1',
@@ -185,11 +185,25 @@ export class FakeClientRemote extends FakeRemote {
   }
 }
 
+export class FakeUiWorkspace implements ClientUiWorkspace {
+  readonly openCalls: string[] = []
+  readonly opened: string[] = []
+  failure: unknown
+
+  openSession(id: SessionId): void {
+    this.openCalls.push(id)
+    if (this.failure !== undefined) throw this.failure
+    this.opened.push(id)
+  }
+}
+
 export class FakeSessions implements ClientSessions {
+  constructor(readonly navigation = new FakeUiWorkspace()) {}
+
   ids: SessionId[] = []
   visibleAfterRefresh = true
   refreshCalls = 0
-  opened: string[] = []
+  get opened(): readonly string[] { return this.navigation.opened }
   private readonly listeners = new Set<() => void>()
   readonly list = {
     getSnapshot: (): ClientSessionListSnapshot => ({ ids: this.ids }),
@@ -203,9 +217,5 @@ export class FakeSessions implements ClientSessions {
     this.refreshCalls += 1
     if (this.visibleAfterRefresh) this.ids = ['dsh-session-1' as SessionId]
     for (const listener of this.listeners) listener()
-  }
-
-  open(id: SessionId): void {
-    this.opened.push(id)
   }
 }
