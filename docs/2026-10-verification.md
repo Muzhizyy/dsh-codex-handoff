@@ -4,7 +4,26 @@ Verification: 2026-10-02–03. Baseline: `dff7d29`. Contract: `docs/2026-10-roun
 
 This report separates source review, automated checks, and empirical Desktop/Codex behavior. A source review is not a pass for an end-to-end gate. Synthetic and isolated homes only are in scope for destructive or write-bearing probes; the user's default Codex and DSH homes are out of scope.
 
-## 2026-10-03 subsequent runtime retest — not fully passed
+## 2026-10-03 current alpha compatibility retest — PASS
+
+The current Desktop installation supplies `C:\Program Files\WindowsApps\OpenAI.Codex_26.930.2377.0_x64__2p2nqsd0c76g0\app\resources\codex.exe`, whose actual `--version` output is `codex-cli 0.159.0-alpha.12.1`. The revised version parser admits this **exact** prerelease and stable `0.159.2+`; nearby alpha/beta versions, stable `0.159.0`/`0.159.1`, and trailing version text are rejected. Stable `0.159.2+` is version-filter eligibility, not a claim that every future stable release has been tested. A read-only independent check using installed DSH's native Windows Node `v24.21.0` exercised the changed parser against this binary's actual output and eight positive/negative controls: 9 passed.
+
+Main's direct inspection of this installed CLI's generated official schema found that `InitializeResponse` requires `codexHome`, `platformFamily`, `platformOs`, and `userAgent`; `ThreadForkParams` requires `threadId` and exposes `excludeTurns: boolean`; `ThreadInjectItemsParams` requires `items` and `threadId`. The product's live schema-method probe, exact-home initialization check, fork provenance check, and empty injection acknowledgement check remain in place. Schema presence alone does not establish a successful return.
+
+Luna reports 20 scoped tests passed after changing only the app-server implementation and its test file. Main reports `pnpm run check` exit 0 after this patch: 245 tests across 24 files, 54 client tests across 5 files, both typechecks/builds, lint, and package import checks passed. These are their command outcomes; this verifier independently reviewed the diff and ran the nine read-only parser cases above. That review found no blocking regression: the version change is limited to exact prerelease eligibility and strict output parsing, while the existing schema, home, fork, and injection guards remain in force.
+
+Main then ran the installed DSH full-flow verifier with native Windows Node, setting `DSH_DESKTOP_ROOT=C:/Users/DELL/AppData/Local/Programs/DeepSeek Harness`, `DSH_VERIFY_CODEX_HOME=C:/Users/DELL/AppData/Local/Temp/dsh-self-source-22pEsu/codex`, and `DSH_VERIFY_SOURCE_ID=01a0fd55-a3d8-7711-bb87-fba2b24ddd70`, and spawning `scripts/verify-roundtrip.mjs --full` through the bundled Electron Node path. It exited 0. Its two reported stdout lines were:
+
+```text
+PASS pinned DSH storage-domain global: fresh prepare, state claim, close/reopen, durable new-facility reload
+PASS real DSH v4 create/query/persist + plugin return preview/sync + official Codex fork/inject; raw context durable, source unchanged, idle, existing/reuse
+```
+
+This is a fresh real DSH/Codex API pass on the installed `0.159.0-alpha.12.1` CLI. The earlier failed retest below remains a historical result from before the narrow version fix. No Electron window click or overlay flow was run.
+
+Main packed the fix from source commit `6e57b09` into a new, local, unpublished `artifacts/dsh-codex-handoff-0.2.0-rc.2.tgz` without changing the package version. Its SHA-256 is `631f29fa6cb0707b3d35b2cb802f16a5c6bcc676c211e6d6ef190db8309de479`, independently confirmed here with `sha256sum`; Main reports that the packed README, CHANGELOG, and compiled app-server are byte-identical to the finalized workspace files. Fresh installed Desktop CLI acceptance used isolated `DSH_TEST_HOME=D:/Project/DSHP/.desktop-test/alpha-install-2MKc55` with native Windows Node running `scripts/installed-desktop-acceptance.mjs`. Main reports exit 0 and stdout `installed DeepSeek Harness Desktop CLI/profile acceptance passed at 0.2.0-rc.2; isolated package add/list/remove`. This is a CLI/profile pass, not an Electron window click.
+
+## Historical R10: 2026-10-03 runtime retest — failed before this fix
 
 The user requested another actual runtime test after the original release acceptance. This run does **not** supersede the historical successful run below with another pass: the current installed Codex binary has changed.
 
@@ -15,7 +34,7 @@ The user requested another actual runtime test after the original release accept
 - A read-only capability diagnostic generated that executable's official stable JSON schema into an owned temporary directory. It exited 0 and included both `thread/fork` and `thread/inject_items`. Their presence alone does not prove request/response or persistence compatibility; the guard was not bypassed or modified.
 - Actual Electron window clicking remains **not run**: the available tool list did not expose the `node_repl` required by the installed computer-use skill. No alternative Windows UI automation or personal Desktop launch was performed.
 
-The final package SHA-256 remains `8d4047b2a570ee9f6b4462951072b2ab7e16959b187dbec866fda6cbcc2d2d98`. The next required implementation work is to validate the current prerelease protocol and make an evidence-backed compatibility decision, then rerun the complete return path. This testing request did not authorize silently weakening that check.
+The archive used in that historical run had SHA-256 `8d4047b2a570ee9f6b4462951072b2ab7e16959b187dbec866fda6cbcc2d2d98`. It predates the narrow compatibility fix; the new archive and full-flow results are recorded in the current PASS section above.
 
 ## Release risks found during source review
 
@@ -48,7 +67,7 @@ The table retains historical failures so the review trail is clear. Each current
 | Official binary discovery/proxy fallback/PowerShell resume quoting | Main native probe plus tests | Main native Windows probe exercised Store discovery, capability probe, proxy fallback, fork/inject; scoped transport tests cover command quoting. |
 | Actual Electron window click flow | Not run | Explicit window interaction evidence; Host/CLI probes alone do not prove this. |
 
-## Current proof and GUI boundary
+## Earlier 0.159.2 proof and GUI boundary
 
 This verifier independently drove the plugin's gateway and return service through installed DSH Desktop's bundled Electron Node runtime, using a synthetic Codex source created through official `thread/start` and `thread/inject_items` in an isolated temporary home and a separate, committed Git fixture. The real DSH session was created, queried, appended through `Session.append`, and flushed. The return service then issued official fork/inject calls. The raw derived rollout contained the injected return marker and progress text; source SHA-256 was unchanged; official `thread/read` returned zero turns. No model adapter request or tool execution occurred. The verifier used the service APIs, not a running Electron window click or installed UI overlay. The GUI click flow remains unverified.
 
@@ -68,9 +87,9 @@ The sequence below is chronological. Every failed snapshot is historical and sup
 - **Historical verifier setup failures:** early full-flow attempts needed the official SessionQuery provider, `surfaceOp: 'append'`, and the correct `codexForkId` response field. A normalized lifecycle assertion also mistook an injected-message boundary for inference. Later assertions use official `thread/read` and assistant/tool evidence. An active repository caused `RETURN_STALE`; a subsequent attempt hit an Electron read-stream `EBADF`. The accepted final runs used a separate committed Git fixture and passed.
 - This verifier reran the scoped host and Full-import tests: **19 passed**, 0 failed. TypeScript `--noEmit` and the documentation gate **passed**.
 - Main reports full `pnpm run check` exit 0: 54 client tests and 229 full tests, both typechecks/builds, lint, and package imports. The packaging worker reports seven-RPC generation/drift and isolated Desktop CLI add/list/remove **passed**. These are other-run results; this verifier did not rerun that whole gate.
-- **Final actual PASS:** the isolated full-flow command below passed real DSH v4 create/query/persist, plugin return preview/sync, official Codex fork/inject, raw derived context persistence, unchanged source SHA, official `thread/read` zero turns, `existing` repeat, and unchanged-preview receipt reuse. The real `DomainFacility` proof, script syntax check, and documentation gate also passed. No GUI click or model/tool run was attempted.
+- **Earlier 0.159.2 actual PASS:** the isolated full-flow command below passed real DSH v4 create/query/persist, plugin return preview/sync, official Codex fork/inject, raw derived context persistence, unchanged source SHA, official `thread/read` zero turns, `existing` repeat, and unchanged-preview receipt reuse. The real `DomainFacility` proof, script syntax check, and documentation gate also passed. No GUI click or model/tool run was attempted.
 
-## Reproduction of the accepted runtime proof
+## Reproduction of the earlier 0.159.2 runtime proof
 
 Versions: installed DSH Desktop `0.2.0-rc.2`, official Codex CLI `0.159.2`, Windows Node `v24.21.0` launching Desktop's bundled Electron Node `v24.18.1`. These commands were run from WSL Bash. `WSLENV` passes the named variables to Windows Node. The verifier then loads the installed ASAR packages with `ELECTRON_RUN_AS_NODE=1` and `--expose-internals`; no GUI window is launched.
 
